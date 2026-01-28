@@ -18,15 +18,17 @@ const POPULAR_TLDS = [
 async function checkDomainAvailability(domain: string, tld: string) {
 	try {
 		// Try to resolve the domain - if it resolves, it's likely taken
-		const response = await fetch(`https://dns.google/resolve?name=${domain}.${tld}&type=A`);
+		const response = await fetch(
+			`https://dns.google/resolve?name=${domain}.${tld}&type=A`,
+		);
 		const data = await response.json();
-		
+
 		// If we get an answer, domain exists (taken)
 		// If Status is 3 (NXDOMAIN), domain doesn't exist (available)
 		const available = data.Status === 3;
-		
+
 		return { available, status: data.Status };
-	} catch (error) {
+	} catch (_error) {
 		// If there's an error, assume we can't determine
 		return { available: null, status: null };
 	}
@@ -37,10 +39,7 @@ export async function POST(request: Request) {
 		const { name, tld } = await request.json();
 
 		if (!name || !name.trim()) {
-			return NextResponse.json(
-				{ error: "Name is required" },
-				{ status: 400 }
-			);
+			return NextResponse.json({ error: "Name is required" }, { status: 400 });
 		}
 
 		// Clean the name
@@ -49,8 +48,11 @@ export async function POST(request: Request) {
 		// If specific TLD is requested
 		if (tld) {
 			const availability = await checkDomainAvailability(cleanName, tld);
-			const tldInfo = POPULAR_TLDS.find((t) => t.tld === tld) || { tld, price: null };
-			
+			const tldInfo = POPULAR_TLDS.find((t) => t.tld === tld) || {
+				tld,
+				price: null,
+			};
+
 			return NextResponse.json({
 				domain: `${cleanName}.${tld}`,
 				available: availability.available,
@@ -62,14 +64,17 @@ export async function POST(request: Request) {
 		// Check all popular TLDs
 		const results = await Promise.all(
 			POPULAR_TLDS.map(async (tldInfo) => {
-				const availability = await checkDomainAvailability(cleanName, tldInfo.tld);
+				const availability = await checkDomainAvailability(
+					cleanName,
+					tldInfo.tld,
+				);
 				return {
 					domain: `${cleanName}.${tldInfo.tld}`,
 					tld: tldInfo.tld,
 					available: availability.available,
 					price: tldInfo.price,
 				};
-			})
+			}),
 		);
 
 		return NextResponse.json({ results });
@@ -77,7 +82,7 @@ export async function POST(request: Request) {
 		console.error("Domain check error:", error);
 		return NextResponse.json(
 			{ error: "Failed to check domain availability" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

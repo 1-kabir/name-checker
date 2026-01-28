@@ -1,27 +1,24 @@
-import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
-
-const groq = new Groq({
-	apiKey: process.env.GROQ_API_KEY,
-});
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
 	try {
 		const { name, count = 10 } = await request.json();
 
 		if (!name || !name.trim()) {
-			return NextResponse.json(
-				{ error: "Name is required" },
-				{ status: 400 }
-			);
+			return NextResponse.json({ error: "Name is required" }, { status: 400 });
 		}
 
 		if (!process.env.GROQ_API_KEY) {
 			return NextResponse.json(
 				{ error: "Groq API key not configured" },
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
+
+		const groq = new Groq({
+			apiKey: process.env.GROQ_API_KEY,
+		});
 
 		const prompt = `Generate ${count} creative and brandable alternative names similar to "${name}". 
 		
@@ -50,7 +47,7 @@ Do not include any explanation or additional text, just the JSON array.`;
 		});
 
 		const responseText = completion.choices[0]?.message?.content || "[]";
-		
+
 		// Parse the JSON response
 		let suggestions: string[];
 		try {
@@ -61,13 +58,13 @@ Do not include any explanation or additional text, just the JSON array.`;
 			} else {
 				suggestions = JSON.parse(responseText);
 			}
-		} catch (parseError) {
+		} catch (_parseError) {
 			console.error("Failed to parse AI response:", responseText);
 			// Fallback: try to extract names from text
 			suggestions = responseText
 				.split(/[\n,]/)
-				.map(s => s.trim().replace(/^["']|["']$/g, ''))
-				.filter(s => s && s.length > 0 && s.length < 30)
+				.map((s) => s.trim().replace(/^["']|["']$/g, ""))
+				.filter((s) => s && s.length > 0 && s.length < 30)
 				.slice(0, count);
 		}
 
@@ -81,7 +78,7 @@ Do not include any explanation or additional text, just the JSON array.`;
 		console.error("Name generation error:", error);
 		return NextResponse.json(
 			{ error: "Failed to generate name suggestions" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

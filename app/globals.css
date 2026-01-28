@@ -1,5 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
 	:root {
@@ -27,13 +27,10 @@
 }
 
 @layer base {
-	* {
-		@apply border-border;
-	}
-	
 	body {
-		@apply bg-background text-foreground;
-		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		@apply bg-white text-black;
+		font-family:
+			"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 		font-feature-settings: "cv11", "ss01";
 		font-variation-settings: "opsz" auto;
 	}
@@ -45,16 +42,16 @@
 		width: 6px;
 		height: 6px;
 	}
-	
+
 	.scrollbar-thin::-webkit-scrollbar-track {
 		background: transparent;
 	}
-	
+
 	.scrollbar-thin::-webkit-scrollbar-thumb {
 		background: #e5e5e5;
 		border-radius: 3px;
 	}
-	
+
 	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
 		background: #d4d4d4;
 	}

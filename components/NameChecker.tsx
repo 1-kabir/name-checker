@@ -1,8 +1,16 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import {
+	Check,
+	Globe,
+	Loader2,
+	Search,
+	Sparkles,
+	Users,
+	X,
+} from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, Check, X, Loader2, Sparkles, Globe, Users } from "lucide-react";
 
 interface DomainResult {
 	domain: string;
@@ -25,7 +33,9 @@ export default function NameChecker() {
 	const [domainResults, setDomainResults] = useState<DomainResult[]>([]);
 	const [socialResults, setSocialResults] = useState<SocialResult[]>([]);
 	const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-	const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
+	const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(
+		new Set(),
+	);
 	const [activeTab, setActiveTab] = useState<"domains" | "social">("domains");
 
 	const handleSearch = async () => {
@@ -34,7 +44,7 @@ export default function NameChecker() {
 		setIsChecking(true);
 		setDomainResults([]);
 		setSocialResults([]);
-		
+
 		try {
 			// Check domains
 			const domainRes = await fetch("/api/check-domain", {
@@ -95,7 +105,7 @@ export default function NameChecker() {
 
 		setIsChecking(true);
 		const names = Array.from(selectedSuggestions);
-		
+
 		try {
 			const results = await Promise.all(
 				names.map(async (name) => {
@@ -105,10 +115,10 @@ export default function NameChecker() {
 						body: JSON.stringify({ name }),
 					});
 					return res.json();
-				})
+				}),
 			);
 
-			const allDomains = results.flatMap(r => r.results || []);
+			const allDomains = results.flatMap((r) => r.results || []);
 			setDomainResults(allDomains);
 			setActiveTab("domains");
 		} catch (error) {
@@ -118,10 +128,10 @@ export default function NameChecker() {
 		}
 	};
 
-	const availableDomains = domainResults.filter(d => d.available === true);
-	const takenDomains = domainResults.filter(d => d.available === false);
-	const availableSocial = socialResults.filter(s => s.available === true);
-	const takenSocial = socialResults.filter(s => s.available === false);
+	const availableDomains = domainResults.filter((d) => d.available === true);
+	const takenDomains = domainResults.filter((d) => d.available === false);
+	const availableSocial = socialResults.filter((s) => s.available === true);
+	const takenSocial = socialResults.filter((s) => s.available === false);
 
 	return (
 		<div className="min-h-screen bg-white text-black p-4 md:p-8">
@@ -136,7 +146,8 @@ export default function NameChecker() {
 						Name Checker
 					</h1>
 					<p className="text-lg text-gray-600">
-						Check domain availability, social media usernames, and generate AI-powered brand names
+						Check domain availability, social media usernames, and generate
+						AI-powered brand names
 					</p>
 				</motion.div>
 
@@ -157,6 +168,7 @@ export default function NameChecker() {
 							className="w-full px-6 py-4 text-lg border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black transition-all"
 						/>
 						<button
+							type="button"
 							onClick={handleSearch}
 							disabled={isChecking || !searchName.trim()}
 							className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2 bg-black text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-gray-800"
@@ -172,6 +184,7 @@ export default function NameChecker() {
 					{/* Action Buttons */}
 					<div className="flex justify-center gap-4 mt-4">
 						<button
+							type="button"
 							onClick={handleGenerateNames}
 							disabled={isGenerating || !searchName.trim()}
 							className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
@@ -199,6 +212,7 @@ export default function NameChecker() {
 								<h2 className="text-2xl font-bold">AI Suggestions</h2>
 								{selectedSuggestions.size > 0 && (
 									<button
+										type="button"
 										onClick={handleCheckSelected}
 										disabled={isChecking}
 										className="flex items-center gap-2 px-4 py-2 bg-black text-white hover:bg-gray-800 transition-colors"
@@ -208,12 +222,13 @@ export default function NameChecker() {
 								)}
 							</div>
 							<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-								{aiSuggestions.map((name, idx) => (
+								{aiSuggestions.map((name) => (
 									<motion.button
-										key={idx}
+										key={name}
+										type="button"
 										initial={{ opacity: 0, scale: 0.9 }}
 										animate={{ opacity: 1, scale: 1 }}
-										transition={{ delay: idx * 0.05 }}
+										transition={{ delay: aiSuggestions.indexOf(name) * 0.05 }}
 										onClick={() => toggleSuggestion(name)}
 										className={`px-4 py-3 border-2 border-black text-left transition-all ${
 											selectedSuggestions.has(name)
@@ -239,6 +254,7 @@ export default function NameChecker() {
 						{/* Tabs */}
 						<div className="flex border-b-2 border-black mb-6">
 							<button
+								type="button"
 								onClick={() => setActiveTab("domains")}
 								className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
 									activeTab === "domains"
@@ -250,6 +266,7 @@ export default function NameChecker() {
 								Domains ({domainResults.length})
 							</button>
 							<button
+								type="button"
 								onClick={() => setActiveTab("social")}
 								className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
 									activeTab === "social"
@@ -271,19 +288,23 @@ export default function NameChecker() {
 											<Check className="w-5 h-5" /> Available Domains
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{availableDomains.map((domain, idx) => (
+											{availableDomains.map((domain) => (
 												<motion.div
-													key={idx}
+													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{ delay: idx * 0.05 }}
+													transition={{
+														delay: availableDomains.indexOf(domain) * 0.05,
+													}}
 													className="p-4 border-2 border-black bg-white"
 												>
 													<div className="flex justify-between items-start">
 														<div>
 															<p className="font-bold">{domain.domain}</p>
 															{domain.price && (
-																<p className="text-sm text-gray-600">${domain.price}/year</p>
+																<p className="text-sm text-gray-600">
+																	${domain.price}/year
+																</p>
 															)}
 														</div>
 														<Check className="w-5 h-5 text-green-600" />
@@ -300,17 +321,21 @@ export default function NameChecker() {
 											<X className="w-5 h-5" /> Taken Domains
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{takenDomains.map((domain, idx) => (
+											{takenDomains.map((domain) => (
 												<motion.div
-													key={idx}
+													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{ delay: idx * 0.05 }}
+													transition={{
+														delay: takenDomains.indexOf(domain) * 0.05,
+													}}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500"
 												>
 													<div className="flex justify-between items-start">
 														<div>
-															<p className="font-bold line-through">{domain.domain}</p>
+															<p className="font-bold line-through">
+																{domain.domain}
+															</p>
 															{domain.price && (
 																<p className="text-sm">${domain.price}/year</p>
 															)}
@@ -334,15 +359,17 @@ export default function NameChecker() {
 											<Check className="w-5 h-5" /> Available Usernames
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{availableSocial.map((social, idx) => (
+											{availableSocial.map((social) => (
 												<motion.a
-													key={idx}
+													key={social.platform}
 													href={social.url || "#"}
 													target="_blank"
 													rel="noopener noreferrer"
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{ delay: idx * 0.05 }}
+													transition={{
+														delay: availableSocial.indexOf(social) * 0.05,
+													}}
 													className="p-4 border-2 border-black bg-white hover:bg-gray-50 transition-colors"
 												>
 													<div className="flex justify-between items-center">
@@ -361,19 +388,23 @@ export default function NameChecker() {
 											<X className="w-5 h-5" /> Taken Usernames
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{takenSocial.map((social, idx) => (
+											{takenSocial.map((social) => (
 												<motion.a
-													key={idx}
+													key={social.platform}
 													href={social.url || "#"}
 													target="_blank"
 													rel="noopener noreferrer"
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{ delay: idx * 0.05 }}
+													transition={{
+														delay: takenSocial.indexOf(social) * 0.05,
+													}}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
 												>
 													<div className="flex justify-between items-center">
-														<p className="font-bold line-through">{social.platform}</p>
+														<p className="font-bold line-through">
+															{social.platform}
+														</p>
 														<X className="w-5 h-5 text-red-600" />
 													</div>
 												</motion.a>
@@ -387,15 +418,19 @@ export default function NameChecker() {
 				)}
 
 				{/* Empty State */}
-				{!isChecking && domainResults.length === 0 && socialResults.length === 0 && (
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						className="text-center py-20 text-gray-400"
-					>
-						<p className="text-lg">Enter a brand name to check availability</p>
-					</motion.div>
-				)}
+				{!isChecking &&
+					domainResults.length === 0 &&
+					socialResults.length === 0 && (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							className="text-center py-20 text-gray-400"
+						>
+							<p className="text-lg">
+								Enter a brand name to check availability
+							</p>
+						</motion.div>
+					)}
 			</div>
 		</div>
 	);
