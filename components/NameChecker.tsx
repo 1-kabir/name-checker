@@ -223,13 +223,13 @@ export default function NameChecker() {
 								)}
 							</div>
 							<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-								{aiSuggestions.map((name) => (
+								{aiSuggestions.map((name, index) => (
 									<motion.button
 										key={name}
 										type="button"
 										initial={{ opacity: 0, scale: 0.9 }}
 										animate={{ opacity: 1, scale: 1 }}
-										transition={{ delay: aiSuggestions.indexOf(name) * 0.05 }}
+										transition={{ delay: index * 0.05 }}
 										onClick={() => toggleSuggestion(name)}
 										className={`px-4 py-3 border-2 border-black text-left transition-all ${
 											selectedSuggestions.has(name)
@@ -289,14 +289,12 @@ export default function NameChecker() {
 											<Check className="w-5 h-5" /> Available Domains
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{availableDomains.map((domain) => (
+											{availableDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{
-														delay: availableDomains.indexOf(domain) * 0.05,
-													}}
+													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-black bg-white"
 												>
 													<div className="flex justify-between items-start">
@@ -322,14 +320,12 @@ export default function NameChecker() {
 											<X className="w-5 h-5" /> Taken Domains
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{takenDomains.map((domain) => (
+											{takenDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{
-														delay: takenDomains.indexOf(domain) * 0.05,
-													}}
+													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500"
 												>
 													<div className="flex justify-between items-start">
@@ -355,14 +351,12 @@ export default function NameChecker() {
 											Unknown Status
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{unknownDomains.map((domain) => (
+											{unknownDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{
-														delay: unknownDomains.indexOf(domain) * 0.05,
-													}}
+													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-white text-gray-700"
 												>
 													<div className="flex justify-between items-start">
@@ -393,7 +387,7 @@ export default function NameChecker() {
 											<Check className="w-5 h-5" /> Available Usernames
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{availableSocial.map((social) => (
+											{availableSocial.map((social, index) => (
 												<motion.a
 													key={social.platform}
 													href={social.url || "#"}
@@ -401,9 +395,7 @@ export default function NameChecker() {
 													rel="noopener noreferrer"
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{
-														delay: availableSocial.indexOf(social) * 0.05,
-													}}
+													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-black bg-white hover:bg-gray-50 transition-colors"
 												>
 													<div className="flex justify-between items-center">
@@ -422,7 +414,7 @@ export default function NameChecker() {
 											<X className="w-5 h-5" /> Taken Usernames
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{takenSocial.map((social) => (
+											{takenSocial.map((social, index) => (
 												<motion.a
 													key={social.platform}
 													href={social.url || "#"}
@@ -430,9 +422,7 @@ export default function NameChecker() {
 													rel="noopener noreferrer"
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
-													transition={{
-														delay: takenSocial.indexOf(social) * 0.05,
-													}}
+													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
 												>
 													<div className="flex justify-between items-center">

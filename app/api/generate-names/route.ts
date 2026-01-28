@@ -59,7 +59,7 @@ Do not include any explanation or additional text, just the JSON array.`;
 				suggestions = JSON.parse(responseText);
 			}
 		} catch (_parseError) {
-			console.error("Failed to parse AI response:", responseText);
+			console.error("Failed to parse AI response");
 			// Fallback: try to extract names from text
 			suggestions = responseText
 				.split(/[\n,]/)
