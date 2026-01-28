@@ -130,6 +130,7 @@ export default function NameChecker() {
 
 	const availableDomains = domainResults.filter((d) => d.available === true);
 	const takenDomains = domainResults.filter((d) => d.available === false);
+	const unknownDomains = domainResults.filter((d) => d.available === null);
 	const availableSocial = socialResults.filter((s) => s.available === true);
 	const takenSocial = socialResults.filter((s) => s.available === false);
 
@@ -341,6 +342,39 @@ export default function NameChecker() {
 															)}
 														</div>
 														<X className="w-5 h-5 text-red-600" />
+													</div>
+												</motion.div>
+											))}
+										</div>
+									</div>
+								)}
+
+								{unknownDomains.length > 0 && (
+									<div>
+										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+											Unknown Status
+										</h3>
+										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+											{unknownDomains.map((domain) => (
+												<motion.div
+													key={domain.domain}
+													initial={{ opacity: 0, x: -20 }}
+													animate={{ opacity: 1, x: 0 }}
+													transition={{
+														delay: unknownDomains.indexOf(domain) * 0.05,
+													}}
+													className="p-4 border-2 border-gray-300 bg-white text-gray-700"
+												>
+													<div className="flex justify-between items-start">
+														<div>
+															<p className="font-bold">{domain.domain}</p>
+															{domain.price && (
+																<p className="text-sm text-gray-600">
+																	${domain.price}/year
+																</p>
+															)}
+														</div>
+														<span className="text-sm text-gray-500">?</span>
 													</div>
 												</motion.div>
 											))}
