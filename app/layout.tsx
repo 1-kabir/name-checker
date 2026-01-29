@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteUrl =
+	process.env.NEXT_PUBLIC_SITE_URL || "https://name-checker.vercel.app";
+
 export const metadata: Metadata = {
-	metadataBase: new URL("https://name-checker.vercel.app"),
+	metadataBase: new URL(siteUrl),
 	title: {
 		default: "Name Checker - Check Domain & Social Media Username Availability",
 		template: "%s | Name Checker",
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
 	openGraph: {
 		type: "website",
 		locale: "en_US",
-		url: "https://name-checker.vercel.app",
+		url: siteUrl,
 		title: "Name Checker - Check Domain & Social Media Username Availability",
 		description:
 			"Check domain availability across popular TLDs, verify social media username availability on 20+ platforms, and generate AI-powered brand name suggestions.",
@@ -64,7 +67,7 @@ export const metadata: Metadata = {
 		creator: "@kabirstudios",
 	},
 	alternates: {
-		canonical: "https://name-checker.vercel.app",
+		canonical: siteUrl,
 	},
 };
 
@@ -86,7 +89,7 @@ export default function RootLayout({
 							name: "Name Checker",
 							description:
 								"Check domain availability, social media usernames, and generate AI-powered brand name suggestions",
-							url: "https://name-checker.vercel.app",
+							url: siteUrl,
 							applicationCategory: "BusinessApplication",
 							offers: {
 								"@type": "Offer",

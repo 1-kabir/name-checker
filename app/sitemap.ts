@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
 
+const siteUrl =
+	process.env.NEXT_PUBLIC_SITE_URL || "https://name-checker.vercel.app";
+
 export default function sitemap(): MetadataRoute.Sitemap {
 	return [
 		{
-			url: "https://name-checker.vercel.app",
+			url: siteUrl,
 			lastModified: new Date(),
-			changeFrequency: "daily",
+			changeFrequency: "weekly",
 			priority: 1,
 		},
 	];

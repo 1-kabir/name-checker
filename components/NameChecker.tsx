@@ -136,7 +136,7 @@ export default function NameChecker() {
 
 	return (
 		<div className="min-h-screen bg-white text-black p-4 md:p-8 flex flex-col">
-			<div className="max-w-6xl mx-auto flex-grow">
+			<div className="max-w-6xl mx-auto w-full flex-grow">
 				{/* Header */}
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -458,7 +458,7 @@ export default function NameChecker() {
 			</div>
 
 			{/* Footer */}
-			<footer className="max-w-6xl mx-auto mt-16 pt-8 border-t-2 border-gray-200">
+			<footer className="w-full max-w-6xl mx-auto mt-16 pt-8 border-t-2 border-gray-200">
 				<div className="text-center text-gray-600">
 					<p className="text-sm md:text-base">
 						Made with{" "}
