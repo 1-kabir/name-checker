@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-// Top 20+ social media platforms with their API/check methods
+// Comprehensive social media platforms list (40+ platforms)
 const SOCIAL_PLATFORMS = [
+	// Major Social Networks
 	{ name: "Twitter/X", url: "https://x.com/", checkUrl: "https://x.com/" },
 	{
 		name: "Instagram",
@@ -14,9 +15,9 @@ const SOCIAL_PLATFORMS = [
 		checkUrl: "https://www.facebook.com/",
 	},
 	{
-		name: "YouTube",
-		url: "https://www.youtube.com/@",
-		checkUrl: "https://www.youtube.com/@",
+		name: "LinkedIn",
+		url: "https://www.linkedin.com/in/",
+		checkUrl: "https://www.linkedin.com/in/",
 	},
 	{
 		name: "TikTok",
@@ -24,41 +25,62 @@ const SOCIAL_PLATFORMS = [
 		checkUrl: "https://www.tiktok.com/@",
 	},
 	{
-		name: "LinkedIn",
-		url: "https://www.linkedin.com/in/",
-		checkUrl: "https://www.linkedin.com/in/",
+		name: "Threads",
+		url: "https://www.threads.net/@",
+		checkUrl: "https://www.threads.net/@",
 	},
+
+	// Content Platforms
+	{
+		name: "YouTube",
+		url: "https://www.youtube.com/@",
+		checkUrl: "https://www.youtube.com/@",
+	},
+	{
+		name: "Twitch",
+		url: "https://www.twitch.tv/",
+		checkUrl: "https://www.twitch.tv/",
+	},
+	{ name: "Vimeo", url: "https://vimeo.com/", checkUrl: "https://vimeo.com/" },
+
+	// Developer Platforms
 	{
 		name: "GitHub",
 		url: "https://github.com/",
 		checkUrl: "https://github.com/",
 	},
 	{
-		name: "Reddit",
-		url: "https://www.reddit.com/user/",
-		checkUrl: "https://www.reddit.com/user/",
+		name: "GitLab",
+		url: "https://gitlab.com/",
+		checkUrl: "https://gitlab.com/",
 	},
 	{
-		name: "Pinterest",
-		url: "https://www.pinterest.com/",
-		checkUrl: "https://www.pinterest.com/",
+		name: "Bitbucket",
+		url: "https://bitbucket.org/",
+		checkUrl: "https://bitbucket.org/",
 	},
 	{
-		name: "Snapchat",
-		url: "https://www.snapchat.com/add/",
-		checkUrl: "https://www.snapchat.com/add/",
-	},
-	{ name: "Discord", url: "https://discord.com/users/", checkUrl: null }, // Can't easily check
-	{
-		name: "Twitch",
-		url: "https://www.twitch.tv/",
-		checkUrl: "https://www.twitch.tv/",
+		name: "Dev.to",
+		url: "https://dev.to/",
+		checkUrl: "https://dev.to/",
 	},
 	{
-		name: "Medium",
-		url: "https://medium.com/@",
-		checkUrl: "https://medium.com/@",
+		name: "CodePen",
+		url: "https://codepen.io/",
+		checkUrl: "https://codepen.io/",
 	},
+	{
+		name: "Stack Overflow",
+		url: "https://stackoverflow.com/users/",
+		checkUrl: null, // Different URL structure
+	},
+	{
+		name: "Repl.it",
+		url: "https://replit.com/@",
+		checkUrl: "https://replit.com/@",
+	},
+
+	// Creative & Design Platforms
 	{
 		name: "Dribbble",
 		url: "https://dribbble.com/",
@@ -69,14 +91,133 @@ const SOCIAL_PLATFORMS = [
 		url: "https://www.behance.net/",
 		checkUrl: "https://www.behance.net/",
 	},
-	{ name: "Vimeo", url: "https://vimeo.com/", checkUrl: "https://vimeo.com/" },
-	{ name: "Telegram", url: "https://t.me/", checkUrl: "https://t.me/" },
-	{ name: "WhatsApp", url: null, checkUrl: null }, // Not publicly checkable
-	{ name: "Mastodon", url: "https://mastodon.social/@", checkUrl: null },
 	{
-		name: "Threads",
-		url: "https://www.threads.net/@",
-		checkUrl: "https://www.threads.net/@",
+		name: "Pinterest",
+		url: "https://www.pinterest.com/",
+		checkUrl: "https://www.pinterest.com/",
+	},
+	{
+		name: "Figma",
+		url: "https://www.figma.com/@",
+		checkUrl: "https://www.figma.com/@",
+	},
+
+	// Blogging & Writing Platforms
+	{
+		name: "Medium",
+		url: "https://medium.com/@",
+		checkUrl: "https://medium.com/@",
+	},
+	{
+		name: "Substack",
+		url: "https://substack.com/@",
+		checkUrl: "https://substack.com/@",
+	},
+	{
+		name: "Hashnode",
+		url: "https://hashnode.com/@",
+		checkUrl: "https://hashnode.com/@",
+	},
+	{
+		name: "Tumblr",
+		url: "https://www.tumblr.com/",
+		checkUrl: "https://www.tumblr.com/",
+	},
+
+	// Community & Forums
+	{
+		name: "Reddit",
+		url: "https://www.reddit.com/user/",
+		checkUrl: "https://www.reddit.com/user/",
+	},
+	{ name: "Discord", url: "https://discord.com/users/", checkUrl: null },
+	{
+		name: "Product Hunt",
+		url: "https://www.producthunt.com/@",
+		checkUrl: "https://www.producthunt.com/@",
+	},
+	{
+		name: "Indie Hackers",
+		url: "https://www.indiehackers.com/",
+		checkUrl: "https://www.indiehackers.com/",
+	},
+
+	// Creator & Funding Platforms
+	{
+		name: "Patreon",
+		url: "https://www.patreon.com/",
+		checkUrl: "https://www.patreon.com/",
+	},
+	{
+		name: "Ko-fi",
+		url: "https://ko-fi.com/",
+		checkUrl: "https://ko-fi.com/",
+	},
+	{
+		name: "Buy Me a Coffee",
+		url: "https://www.buymeacoffee.com/",
+		checkUrl: "https://www.buymeacoffee.com/",
+	},
+
+	// Music & Audio Platforms
+	{
+		name: "Spotify",
+		url: "https://open.spotify.com/user/",
+		checkUrl: null, // Complex auth required
+	},
+	{
+		name: "SoundCloud",
+		url: "https://soundcloud.com/",
+		checkUrl: "https://soundcloud.com/",
+	},
+	{
+		name: "Bandcamp",
+		url: "https://bandcamp.com/",
+		checkUrl: null, // Complex structure
+	},
+
+	// Photography & Visual
+	{
+		name: "Flickr",
+		url: "https://www.flickr.com/photos/",
+		checkUrl: "https://www.flickr.com/photos/",
+	},
+	{
+		name: "500px",
+		url: "https://500px.com/p/",
+		checkUrl: "https://500px.com/p/",
+	},
+	{
+		name: "Unsplash",
+		url: "https://unsplash.com/@",
+		checkUrl: "https://unsplash.com/@",
+	},
+
+	// Messaging & Chat
+	{ name: "Telegram", url: "https://t.me/", checkUrl: "https://t.me/" },
+	{
+		name: "Snapchat",
+		url: "https://www.snapchat.com/add/",
+		checkUrl: "https://www.snapchat.com/add/",
+	},
+	{ name: "WhatsApp", url: null, checkUrl: null },
+	{ name: "Mastodon", url: "https://mastodon.social/@", checkUrl: null },
+
+	// Other Popular Platforms
+	{
+		name: "Keybase",
+		url: "https://keybase.io/",
+		checkUrl: "https://keybase.io/",
+	},
+	{
+		name: "Linktree",
+		url: "https://linktr.ee/",
+		checkUrl: "https://linktr.ee/",
+	},
+	{
+		name: "AboutMe",
+		url: "https://about.me/",
+		checkUrl: "https://about.me/",
 	},
 ];
 
