@@ -1,11 +1,8 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // Simple in-memory rate limiting store
-const rateLimitStore = new Map<
-	string,
-	{ count: number; resetTime: number }
->();
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limit configuration
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute

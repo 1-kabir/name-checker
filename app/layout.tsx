@@ -4,8 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
 	metadataBase: new URL("https://name-checker.vercel.app"),
 	title: {
-		default:
-			"Name Checker - Check Domain & Social Media Username Availability",
+		default: "Name Checker - Check Domain & Social Media Username Availability",
 		template: "%s | Name Checker",
 	},
 	description:
