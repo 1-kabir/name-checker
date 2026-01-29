@@ -9,18 +9,32 @@ const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 20; // 20 requests per minute
 
 function getRateLimitKey(request: NextRequest): string {
-	// Use IP address or a combination of IP and user agent for identification
+	// Try multiple headers for IP address (for different proxy configurations)
 	const forwarded = request.headers.get("x-forwarded-for");
-	const ip = forwarded ? forwarded.split(",")[0] : "unknown";
-	return ip;
+	const realIp = request.headers.get("x-real-ip");
+
+	// x-forwarded-for may contain multiple IPs (client, proxy1, proxy2)
+	// We want the client IP, which is typically the first one
+	if (forwarded) {
+		return forwarded.split(",")[0].trim();
+	}
+
+	if (realIp) {
+		return realIp.trim();
+	}
+
+	// Fallback to a constant for local/unknown IPs
+	// In production, this should rarely happen with proper proxy configuration
+	return "unknown";
 }
 
 function checkRateLimit(key: string): { allowed: boolean; remaining: number } {
 	const now = Date.now();
 	const record = rateLimitStore.get(key);
 
-	// Clean up old entries periodically (simple cleanup)
-	if (rateLimitStore.size > 10000) {
+	// Clean up expired entries more aggressively
+	// Remove expired entries every time if map has significant size
+	if (rateLimitStore.size > 100) {
 		for (const [k, v] of rateLimitStore.entries()) {
 			if (v.resetTime < now) {
 				rateLimitStore.delete(k);

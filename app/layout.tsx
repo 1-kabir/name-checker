@@ -66,11 +66,6 @@ export const metadata: Metadata = {
 	alternates: {
 		canonical: "https://name-checker.vercel.app",
 	},
-	verification: {
-		google: "your-google-verification-code",
-		// yandex: "your-yandex-verification-code",
-		// bing: "your-bing-verification-code",
-	},
 };
 
 export default function RootLayout({
@@ -81,7 +76,6 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<head>
-				<link rel="canonical" href="https://name-checker.vercel.app" />
 				<script
 					type="application/ld+json"
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: Required for structured data
@@ -111,11 +105,6 @@ export default function RootLayout({
 							},
 							keywords:
 								"domain checker, username availability, social media checker, brand name generator, TLD checker",
-							aggregateRating: {
-								"@type": "AggregateRating",
-								ratingValue: "4.8",
-								ratingCount: "1000",
-							},
 						}),
 					}}
 				/>

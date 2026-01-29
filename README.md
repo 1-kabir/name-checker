@@ -133,6 +133,11 @@ The application includes built-in rate limiting to prevent bot abuse:
 - Returns `429 Too Many Requests` when limit is exceeded
 - Automatic cleanup of expired records
 
+**Note for Production:** The current implementation uses in-memory storage which:
+- Will not persist across server restarts
+- Won't be shared across multiple instances in distributed deployments
+- For high-traffic production environments, consider using Redis or similar for distributed rate limiting
+
 ### Environment Variables
 
 Never commit sensitive keys to version control. Always use environment variables:
@@ -190,13 +195,14 @@ To rank higher on search engines:
    - Submit sitemap: `https://yourdomain.com/sitemap.xml`
 
 7. **Update Verification Codes**
-   - Add Google Search Console verification in `app/layout.tsx`
+   - Add Google Search Console verification in `app/layout.tsx` (uncomment and add your code)
    - Add other search engine verifications as needed
 
-8. **Create OG Image**
-   - Design a 1200x630px image
+8. **Create OG Image** (Required for social sharing)
+   - Design a 1200x630px image showcasing your app
    - Save as `public/og-image.png`
    - Include app name and key features
+   - Current code references this image but it needs to be created
 
 ## 📁 Project Structure
 
