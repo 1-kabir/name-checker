@@ -1,29 +1,27 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
-import { checkAIRateLimit, getClientIP } from "@/lib/rateLimit";
+import { requestAIGeneration, getClientIP } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
 	try {
-		// Check rate limit first
+		// Check cooldown and global limit
 		const ip = getClientIP(request.headers);
-		const rateLimitResult = checkAIRateLimit(ip);
+		const limitResult = requestAIGeneration(ip);
 
-		if (!rateLimitResult.allowed) {
-			const resetDate = rateLimitResult.resetTime
-				? new Date(rateLimitResult.resetTime).toISOString()
-				: undefined;
-
+		if (!limitResult.allowed) {
 			return NextResponse.json(
 				{
-					error: rateLimitResult.reason || "Rate limit exceeded",
-					resetTime: resetDate,
-					remaining: rateLimitResult.remaining || 0,
+					error: limitResult.reason || "Rate limit exceeded",
+					resetTime: limitResult.resetTime
+						? new Date(limitResult.resetTime).toISOString()
+						: undefined,
 				},
 				{
 					status: 429,
 					headers: {
-						"X-RateLimit-Remaining": String(rateLimitResult.remaining || 0),
-						"X-RateLimit-Reset": String(rateLimitResult.resetTime || 0),
+						"Retry-After": String(
+							Math.ceil((limitResult.remainingMs || 60000) / 1000),
+						),
 					},
 				},
 			);
@@ -103,8 +101,8 @@ Do not include any explanation or additional text, just the JSON array.`;
 			{ suggestions: suggestions.slice(0, count) },
 			{
 				headers: {
-					"X-RateLimit-Remaining": String(rateLimitResult.remaining || 0),
-					"X-RateLimit-Reset": String(rateLimitResult.resetTime || 0),
+					"X-RateLimit-Remaining": String(limitResult.remaining || 0),
+					"X-RateLimit-Reset": String(limitResult.resetTime || 0),
 				},
 			},
 		);

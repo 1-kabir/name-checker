@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 interface RateLimitData {
-	perIP: Record<string, { count: number; resetTime: number }>;
 	global: { count: number; resetDate: string };
+	cooldowns: Record<string, { until: number }>;
 }
 
 const RATE_LIMIT_FILE = path.join(
@@ -11,8 +11,8 @@ const RATE_LIMIT_FILE = path.join(
 	"data",
 	"ai-rate-limits.json",
 );
-const MAX_REQUESTS_PER_IP_PER_DAY = 50;
-const MAX_GLOBAL_REQUESTS_PER_DAY = 1000; // Adjust as needed
+const MAX_GLOBAL_REQUESTS_PER_DAY = 50;
+const COOLDOWN_DURATION_MS = 60 * 1000; // 1 minute cooldown
 
 // Ensure data directory exists
 function ensureDataDir() {
@@ -34,8 +34,8 @@ function loadRateLimitData(): RateLimitData {
 		console.error("Error loading rate limit data:", error);
 	}
 	return {
-		perIP: {},
 		global: { count: 0, resetDate: getTodayDate() },
+		cooldowns: {},
 	};
 }
 
@@ -78,8 +78,46 @@ export function getClientIP(headers: Headers): string {
 	return "unknown";
 }
 
-// Check and update rate limits
-export function checkAIRateLimit(ip: string): {
+// Check cooldown for an IP
+export function checkCooldown(ip: string): {
+	allowed: boolean;
+	remainingMs?: number;
+} {
+	const data = loadRateLimitData();
+	const now = Date.now();
+
+	const cooldownRecord = data.cooldowns[ip];
+	if (cooldownRecord && cooldownRecord.until > now) {
+		return {
+			allowed: false,
+			remainingMs: cooldownRecord.until - now,
+		};
+	}
+
+	// Clear expired cooldowns periodically
+	if (Object.keys(data.cooldowns).length > 50) {
+		for (const [key, record] of Object.entries(data.cooldowns)) {
+			if (record.until < now) {
+				delete data.cooldowns[key];
+			}
+		}
+		saveRateLimitData(data);
+	}
+
+	return { allowed: true };
+}
+
+// Set cooldown for an IP
+function setCooldown(ip: string) {
+	const data = loadRateLimitData();
+	data.cooldowns[ip] = {
+		until: Date.now() + COOLDOWN_DURATION_MS,
+	};
+	saveRateLimitData(data);
+}
+
+// Check and update global rate limits
+export function checkAIRateLimit(): {
 	allowed: boolean;
 	reason?: string;
 	remaining?: number;
@@ -87,20 +125,11 @@ export function checkAIRateLimit(ip: string): {
 } {
 	const data = loadRateLimitData();
 	const today = getTodayDate();
-	const now = Date.now();
 	const endOfDay = getEndOfDay();
 
 	// Reset global counter if new day
 	if (data.global.resetDate !== today) {
 		data.global = { count: 0, resetDate: today };
-		data.perIP = {}; // Clear all IP records for new day
-	}
-
-	// Clean up expired IP records
-	for (const [key, record] of Object.entries(data.perIP)) {
-		if (record.resetTime < now) {
-			delete data.perIP[key];
-		}
 	}
 
 	// Check global limit
@@ -112,46 +141,57 @@ export function checkAIRateLimit(ip: string): {
 		};
 	}
 
-	// Check per-IP limit
-	const ipRecord = data.perIP[ip];
-	if (!ipRecord || ipRecord.resetTime < now) {
-		// Create new record or reset expired one
-		data.perIP[ip] = {
-			count: 1,
-			resetTime: endOfDay,
-		};
-		data.global.count += 1;
-		saveRateLimitData(data);
-		return {
-			allowed: true,
-			remaining: MAX_REQUESTS_PER_IP_PER_DAY - 1,
-			resetTime: endOfDay,
-		};
-	}
-
-	if (ipRecord.count >= MAX_REQUESTS_PER_IP_PER_DAY) {
-		return {
-			allowed: false,
-			reason: `Daily limit of ${MAX_REQUESTS_PER_IP_PER_DAY} AI generations reached. Resets at midnight UTC.`,
-			remaining: 0,
-			resetTime: endOfDay,
-		};
-	}
-
-	// Increment counters
-	ipRecord.count += 1;
+	// Increment global counter
 	data.global.count += 1;
 	saveRateLimitData(data);
 
 	return {
 		allowed: true,
-		remaining: MAX_REQUESTS_PER_IP_PER_DAY - ipRecord.count,
+		remaining: MAX_GLOBAL_REQUESTS_PER_DAY - data.global.count,
 		resetTime: endOfDay,
 	};
 }
 
-// Get current rate limit status (without incrementing)
-export function getAIRateLimitStatus(ip: string): {
+// Request AI generation with cooldown and global limit
+export function requestAIGeneration(ip: string): {
+	allowed: boolean;
+	reason?: string;
+	remainingMs?: number;
+	remaining?: number;
+	resetTime?: number;
+} {
+	// Check cooldown first
+	const cooldownResult = checkCooldown(ip);
+	if (!cooldownResult.allowed) {
+		return {
+			allowed: false,
+			reason: `Please wait ${Math.ceil((cooldownResult.remainingMs || 0) / 1000)} seconds before generating again.`,
+			remainingMs: cooldownResult.remainingMs,
+		};
+	}
+
+	// Check global limit
+	const globalResult = checkAIRateLimit();
+	if (!globalResult.allowed) {
+		return {
+			allowed: false,
+			reason: globalResult.reason,
+			resetTime: globalResult.resetTime,
+		};
+	}
+
+	// Set cooldown for this IP
+	setCooldown(ip);
+
+	return {
+		allowed: true,
+		remaining: globalResult.remaining,
+		resetTime: globalResult.resetTime,
+	};
+}
+
+// Get global rate limit status (without incrementing)
+export function getGlobalRateLimitStatus(): {
 	remaining: number;
 	total: number;
 	resetTime: number;
@@ -163,24 +203,16 @@ export function getAIRateLimitStatus(ip: string): {
 	// Reset if new day
 	if (data.global.resetDate !== today) {
 		return {
-			remaining: MAX_REQUESTS_PER_IP_PER_DAY,
-			total: MAX_REQUESTS_PER_IP_PER_DAY,
-			resetTime: endOfDay,
-		};
-	}
-
-	const ipRecord = data.perIP[ip];
-	if (!ipRecord || ipRecord.resetTime < Date.now()) {
-		return {
-			remaining: MAX_REQUESTS_PER_IP_PER_DAY,
-			total: MAX_REQUESTS_PER_IP_PER_DAY,
+			remaining: MAX_GLOBAL_REQUESTS_PER_DAY,
+			total: MAX_GLOBAL_REQUESTS_PER_DAY,
 			resetTime: endOfDay,
 		};
 	}
 
 	return {
-		remaining: Math.max(0, MAX_REQUESTS_PER_IP_PER_DAY - ipRecord.count),
-		total: MAX_REQUESTS_PER_IP_PER_DAY,
+		remaining: Math.max(0, MAX_GLOBAL_REQUESTS_PER_DAY - data.global.count),
+		total: MAX_GLOBAL_REQUESTS_PER_DAY,
 		resetTime: endOfDay,
 	};
 }
+

@@ -10,7 +10,7 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface DomainResult {
 	domain: string;
@@ -43,6 +43,18 @@ export default function NameChecker() {
 		resetTime: string;
 	} | null>(null);
 	const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+	const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+	// Cooldown timer effect
+	useEffect(() => {
+		if (cooldownSeconds <= 0) return;
+
+		const interval = setInterval(() => {
+			setCooldownSeconds((prev) => Math.max(0, prev - 1));
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [cooldownSeconds]);
 
 	const handleSearch = async () => {
 		if (!searchName.trim()) return;
@@ -88,7 +100,24 @@ export default function NameChecker() {
 				body: JSON.stringify({ name: searchName, count: 12 }),
 			});
 
-			// Update rate limit info from headers
+			const data = await res.json();
+
+			if (res.status === 429) {
+				setRateLimitError(
+					data.error || "Rate limit exceeded. Please try again later.",
+				);
+				// Start cooldown timer if it's a cooldown error
+				if (data.error?.includes("wait")) {
+					setCooldownSeconds(60);
+				}
+				return;
+			}
+
+			setAiSuggestions(data.suggestions || []);
+			setSelectedSuggestions(new Set());
+			setRateLimitError(null);
+
+			// Update rate limit info
 			const remaining = res.headers.get("X-RateLimit-Remaining");
 			const reset = res.headers.get("X-RateLimit-Reset");
 			if (remaining && reset) {
@@ -99,17 +128,8 @@ export default function NameChecker() {
 				});
 			}
 
-			const data = await res.json();
-
-			if (res.status === 429) {
-				setRateLimitError(
-					data.error || "Rate limit exceeded. Please try again later.",
-				);
-				return;
-			}
-
-			setAiSuggestions(data.suggestions || []);
-			setSelectedSuggestions(new Set());
+			// Start cooldown timer
+			setCooldownSeconds(60);
 		} catch (error) {
 			console.error("Generation error:", error);
 			setRateLimitError("Failed to generate names. Please try again.");
@@ -215,7 +235,7 @@ export default function NameChecker() {
 						<button
 							type="button"
 							onClick={handleGenerateNames}
-							disabled={isGenerating || !searchName.trim()}
+							disabled={isGenerating || !searchName.trim() || cooldownSeconds > 0}
 							className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
 						>
 							{isGenerating ? (
@@ -223,7 +243,9 @@ export default function NameChecker() {
 							) : (
 								<Sparkles className="w-4 h-4" />
 							)}
-							Generate Similar Names
+							{cooldownSeconds > 0
+								? `Wait ${cooldownSeconds}s...`
+								: "Generate Similar Names"}
 						</button>
 						{rateLimitInfo && (
 							<p className="text-sm text-gray-600">

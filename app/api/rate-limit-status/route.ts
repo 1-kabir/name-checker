@@ -1,22 +1,25 @@
 import { NextResponse } from "next/server";
-import { getAIRateLimitStatus, getClientIP } from "@/lib/rateLimit";
+import { getGlobalRateLimitStatus, getClientIP, checkCooldown } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
 	try {
 		const ip = getClientIP(request.headers);
-		const status = getAIRateLimitStatus(ip);
+		const globalStatus = getGlobalRateLimitStatus();
+		const cooldown = checkCooldown(ip);
 
 		return NextResponse.json(
 			{
-				remaining: status.remaining,
-				total: status.total,
-				resetTime: new Date(status.resetTime).toISOString(),
+				remaining: globalStatus.remaining,
+				total: globalStatus.total,
+				resetTime: new Date(globalStatus.resetTime).toISOString(),
+				onCooldown: !cooldown.allowed,
+				cooldownRemainingMs: cooldown.remainingMs || 0,
 			},
 			{
 				headers: {
-					"X-RateLimit-Remaining": String(status.remaining),
-					"X-RateLimit-Limit": String(status.total),
-					"X-RateLimit-Reset": String(status.resetTime),
+					"X-RateLimit-Remaining": String(globalStatus.remaining),
+					"X-RateLimit-Limit": String(globalStatus.total),
+					"X-RateLimit-Reset": String(globalStatus.resetTime),
 				},
 			},
 		);
