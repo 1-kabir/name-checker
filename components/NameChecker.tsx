@@ -41,6 +41,22 @@ export default function NameChecker() {
 	const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 	const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
+	// Check cooldown status on mount
+	useEffect(() => {
+		const checkInitialCooldown = async () => {
+			try {
+				const res = await fetch("/apps/name-checker/api/check-cooldown");
+				const data = await res.json();
+				if (data.onCooldown && data.remainingSeconds) {
+					setCooldownSeconds(data.remainingSeconds);
+				}
+			} catch (error) {
+				console.error("Error checking cooldown:", error);
+			}
+		};
+		checkInitialCooldown();
+	}, []);
+
 	// Cooldown timer effect
 	useEffect(() => {
 		if (cooldownSeconds <= 0) return;
@@ -536,7 +552,18 @@ export default function NameChecker() {
 
 			{/* Footer */}
 			<footer className="w-full max-w-6xl mx-auto mt-16 pt-8 border-t-2 border-gray-200">
-				<div className="text-center text-gray-600">
+				<div className="text-center text-gray-600 space-y-2">
+					<p className="text-sm">
+						Open source on{" "}
+						<a
+							href="https://github.com/1-kabir/name-checker"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="font-semibold text-black hover:underline transition-all"
+						>
+							GitHub
+						</a>
+					</p>
 					<p className="text-sm md:text-base">
 						Made with{" "}
 						<span className="text-red-500 animate-pulse inline-block">❤</span>{" "}
