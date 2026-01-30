@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Script from "next/script";
 
 const siteUrl =
 	process.env.NEXT_PUBLIC_SITE_URL || "https://name-checker.vercel.app";
@@ -110,6 +111,11 @@ export default function RootLayout({
 								"domain checker, username availability, social media checker, brand name generator, TLD checker",
 						}),
 					}}
+				/>
+				<Script
+					defer
+					src="https://analytics.kabirstudios.com/script.js"
+					data-website-id="587e962e-c7f6-40cb-9e33-07809884bdad"
 				/>
 			</head>
 			<body className="antialiased">{children}</body>
