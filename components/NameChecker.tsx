@@ -270,17 +270,49 @@ export default function NameChecker() {
 							className="mb-8 border-2 border-black p-6"
 						>
 							<div className="flex justify-between items-center mb-4">
-								<h2 className="text-2xl font-bold">AI Suggestions</h2>
-								{selectedSuggestions.size > 0 && (
+								<div>
+									<h2 className="text-2xl font-bold">AI Suggestions</h2>
+									<p className="text-sm text-gray-600 mt-1">
+										{aiSuggestions.length} names generated • Click to select
+									</p>
+								</div>
+								<div className="flex gap-2">
 									<button
 										type="button"
-										onClick={handleCheckSelected}
-										disabled={isChecking}
-										className="flex items-center gap-2 px-4 py-2 bg-black text-white hover:bg-gray-800 transition-colors"
+										onClick={() => {
+											if (selectedSuggestions.size === aiSuggestions.length) {
+												setSelectedSuggestions(new Set());
+											} else {
+												setSelectedSuggestions(new Set(aiSuggestions));
+											}
+										}}
+										className="px-4 py-2 border-2 border-black hover:bg-gray-100 transition-colors text-sm"
 									>
-										Check Selected ({selectedSuggestions.size})
+										{selectedSuggestions.size === aiSuggestions.length
+											? "Deselect All"
+											: "Select All"}
 									</button>
-								)}
+									{selectedSuggestions.size > 0 && (
+										<button
+											type="button"
+											onClick={handleCheckSelected}
+											disabled={isChecking}
+											className="flex items-center gap-2 px-4 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 transition-colors"
+										>
+											{isChecking ? (
+												<>
+													<Loader2 className="w-4 h-4 animate-spin" />
+													Checking...
+												</>
+											) : (
+												<>
+													<Search className="w-4 h-4" />
+													Check Selected ({selectedSuggestions.size})
+												</>
+											)}
+										</button>
+									)}
+								</div>
 							</div>
 							<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 								{aiSuggestions.map((name, index) => (
@@ -291,13 +323,18 @@ export default function NameChecker() {
 										animate={{ opacity: 1, scale: 1 }}
 										transition={{ delay: index * 0.05 }}
 										onClick={() => toggleSuggestion(name)}
-										className={`px-4 py-3 border-2 border-black text-left transition-all ${
+										className={`px-4 py-3 border-2 border-black text-left transition-all font-medium ${
 											selectedSuggestions.has(name)
 												? "bg-black text-white"
 												: "bg-white hover:bg-gray-100"
 										}`}
 									>
-										{name}
+										<div className="flex justify-between items-center">
+											<span>{name}</span>
+											{selectedSuggestions.has(name) && (
+												<Check className="w-4 h-4" />
+											)}
+										</div>
 									</motion.button>
 								))}
 							</div>
