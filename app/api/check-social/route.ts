@@ -238,21 +238,63 @@ async function checkUsername(
 	try {
 		const checkUrl = `${platform.checkUrl}${username}`;
 
-		// Make a HEAD request to check if the profile exists
+		// Make a GET request to check if the profile exists
 		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+		const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
 		const response = await fetch(checkUrl, {
-			method: "HEAD",
+			method: "GET",
 			signal: controller.signal,
-			redirect: "manual", // Don't follow redirects
+			redirect: "follow", // Follow redirects to see final destination
+			headers: {
+				"User-Agent":
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			},
 		});
 
 		clearTimeout(timeoutId);
 
-		// If we get 200 or 302, profile likely exists (taken)
-		// If we get 404, profile doesn't exist (available)
-		const available = response.status === 404;
+		// Platform-specific logic
+		let available = false;
+
+		// Most platforms return 404 for non-existent profiles
+		if (response.status === 404) {
+			available = true;
+		}
+		// Some platforms return 200 but show "not found" page
+		else if (response.status === 200) {
+			const text = await response.text();
+			const lowerText = text.toLowerCase();
+
+			// Check for common "not found" indicators
+			const notFoundIndicators = [
+				"page not found",
+				"user not found",
+				"profile not found",
+				"doesn't exist",
+				"isn't available",
+				"this account doesn't exist",
+				"sorry, this page isn't available",
+				"the page you requested was not found",
+				"this page is no longer available",
+			];
+
+			available = notFoundIndicators.some((indicator) =>
+				lowerText.includes(indicator),
+			);
+		}
+		// Redirects to error/login page might indicate availability
+		else if ([301, 302, 303].includes(response.status)) {
+			const location = response.headers.get("location") || "";
+			// If redirected to home, login, or error page, likely available
+			if (
+				location.includes("/login") ||
+				location.includes("/signup") ||
+				location === "/"
+			) {
+				available = true;
+			}
+		}
 
 		return {
 			platform: platform.name,

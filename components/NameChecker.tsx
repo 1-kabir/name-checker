@@ -37,11 +37,7 @@ export default function NameChecker() {
 		new Set(),
 	);
 	const [activeTab, setActiveTab] = useState<"domains" | "social">("domains");
-	const [rateLimitInfo, setRateLimitInfo] = useState<{
-		remaining: number;
-		total: number;
-		resetTime: string;
-	} | null>(null);
+
 	const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 	const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
@@ -116,17 +112,6 @@ export default function NameChecker() {
 			setAiSuggestions(data.suggestions || []);
 			setSelectedSuggestions(new Set());
 			setRateLimitError(null);
-
-			// Update rate limit info
-			const remaining = res.headers.get("X-RateLimit-Remaining");
-			const reset = res.headers.get("X-RateLimit-Reset");
-			if (remaining && reset) {
-				setRateLimitInfo({
-					remaining: Number.parseInt(remaining),
-					total: 50,
-					resetTime: new Date(Number.parseInt(reset)).toISOString(),
-				});
-			}
 
 			// Start cooldown timer
 			setCooldownSeconds(60);
@@ -247,11 +232,6 @@ export default function NameChecker() {
 								? `Wait ${cooldownSeconds}s...`
 								: "Generate Similar Names"}
 						</button>
-						{rateLimitInfo && (
-							<p className="text-sm text-gray-600">
-								{rateLimitInfo.remaining} of {rateLimitInfo.total} AI generations remaining today
-							</p>
-						)}
 						{rateLimitError && (
 							<p className="text-sm text-red-600 font-medium">
 								⚠️ {rateLimitError}
