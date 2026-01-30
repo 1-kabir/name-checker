@@ -65,7 +65,7 @@ export default function NameChecker() {
 
 		try {
 			// Check domains
-			const domainRes = await fetch("/api/check-domain", {
+			const domainRes = await fetch("/apps/name-checker/api/check-domain", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ name: searchName }),
@@ -74,7 +74,7 @@ export default function NameChecker() {
 			setDomainResults(domainData.results || []);
 
 			// Check social media
-			const socialRes = await fetch("/api/check-social", {
+			const socialRes = await fetch("/apps/name-checker/api/check-social", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ username: searchName }),
@@ -157,7 +157,7 @@ export default function NameChecker() {
 		try {
 			const results = await Promise.all(
 				names.map(async (name) => {
-					const res = await fetch("/api/check-domain", {
+					const res = await fetch("/apps/name-checker/api/check-domain", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ name }),
