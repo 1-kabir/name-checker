@@ -37,6 +37,12 @@ export default function NameChecker() {
 		new Set(),
 	);
 	const [activeTab, setActiveTab] = useState<"domains" | "social">("domains");
+	const [rateLimitInfo, setRateLimitInfo] = useState<{
+		remaining: number;
+		total: number;
+		resetTime: string;
+	} | null>(null);
+	const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
 	const handleSearch = async () => {
 		if (!searchName.trim()) return;
@@ -74,17 +80,39 @@ export default function NameChecker() {
 		if (!searchName.trim()) return;
 
 		setIsGenerating(true);
+		setRateLimitError(null);
 		try {
-			const res = await fetch("/api/generate-names", {
+			const res = await fetch("/apps/name-checker/api/generate-names", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ name: searchName, count: 12 }),
 			});
+
+			// Update rate limit info from headers
+			const remaining = res.headers.get("X-RateLimit-Remaining");
+			const reset = res.headers.get("X-RateLimit-Reset");
+			if (remaining && reset) {
+				setRateLimitInfo({
+					remaining: Number.parseInt(remaining),
+					total: 50,
+					resetTime: new Date(Number.parseInt(reset)).toISOString(),
+				});
+			}
+
 			const data = await res.json();
+
+			if (res.status === 429) {
+				setRateLimitError(
+					data.error || "Rate limit exceeded. Please try again later.",
+				);
+				return;
+			}
+
 			setAiSuggestions(data.suggestions || []);
 			setSelectedSuggestions(new Set());
 		} catch (error) {
 			console.error("Generation error:", error);
+			setRateLimitError("Failed to generate names. Please try again.");
 		} finally {
 			setIsGenerating(false);
 		}
@@ -183,7 +211,7 @@ export default function NameChecker() {
 					</div>
 
 					{/* Action Buttons */}
-					<div className="flex justify-center gap-4 mt-4">
+					<div className="flex flex-col items-center gap-2 mt-4">
 						<button
 							type="button"
 							onClick={handleGenerateNames}
@@ -197,6 +225,16 @@ export default function NameChecker() {
 							)}
 							Generate Similar Names
 						</button>
+						{rateLimitInfo && (
+							<p className="text-sm text-gray-600">
+								{rateLimitInfo.remaining} of {rateLimitInfo.total} AI generations remaining today
+							</p>
+						)}
+						{rateLimitError && (
+							<p className="text-sm text-red-600 font-medium">
+								⚠️ {rateLimitError}
+							</p>
+						)}
 					</div>
 				</motion.div>
 
