@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
-import { requestAIGeneration, getClientIP } from "@/lib/rateLimit";
+import { getClientIP, requestAIGeneration } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
 	try {

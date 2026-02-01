@@ -6,11 +6,7 @@ interface RateLimitData {
 	cooldowns: Record<string, { until: number }>;
 }
 
-const RATE_LIMIT_FILE = path.join(
-	process.cwd(),
-	"data",
-	"ai-rate-limits.json",
-);
+const RATE_LIMIT_FILE = path.join(process.cwd(), "data", "ai-rate-limits.json");
 const MAX_GLOBAL_REQUESTS_PER_DAY = 50;
 const COOLDOWN_DURATION_MS = 60 * 1000; // 1 minute cooldown
 
@@ -215,4 +211,3 @@ export function getGlobalRateLimitStatus(): {
 		resetTime: endOfDay,
 	};
 }
-

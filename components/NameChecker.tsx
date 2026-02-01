@@ -10,13 +10,14 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface DomainResult {
 	domain: string;
 	tld: string;
 	available: boolean | null;
 	price: number | null;
+	category?: string;
 }
 
 interface SocialResult {
@@ -25,6 +26,17 @@ interface SocialResult {
 	available: boolean | null;
 	status: string;
 }
+
+type PriceFilter = "all" | "under10" | "10-30" | "30-50" | "over50";
+type CategoryFilter =
+	| "all"
+	| "generic"
+	| "tech"
+	| "business"
+	| "creative"
+	| "ecommerce"
+	| "community";
+type SortOption = "name" | "price-low" | "price-high";
 
 export default function NameChecker() {
 	const [searchName, setSearchName] = useState("");
@@ -40,6 +52,16 @@ export default function NameChecker() {
 
 	const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 	const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+	// Filter states
+	const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
+	const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+	const [sortOption, setSortOption] = useState<SortOption>("name");
+
+	// Bulk checking states
+	const [bulkMode, setBulkMode] = useState(false);
+	const [bulkInput, setBulkInput] = useState("");
+	const [bulkProgress, setBulkProgress] = useState(0);
 
 	// Check cooldown status on mount
 	useEffect(() => {
@@ -177,11 +199,141 @@ export default function NameChecker() {
 		}
 	};
 
+	// Filter domains based on price and category
+	const filterDomains = (domains: DomainResult[]) => {
+		let filtered = [...domains];
+
+		// Apply price filter
+		if (priceFilter !== "all") {
+			filtered = filtered.filter((d) => {
+				if (!d.price) return false;
+				switch (priceFilter) {
+					case "under10":
+						return d.price < 10;
+					case "10-30":
+						return d.price >= 10 && d.price < 30;
+					case "30-50":
+						return d.price >= 30 && d.price < 50;
+					case "over50":
+						return d.price >= 50;
+					default:
+						return true;
+				}
+			});
+		}
+
+		// Apply category filter
+		if (categoryFilter !== "all") {
+			filtered = filtered.filter((d) => d.category === categoryFilter);
+		}
+
+		// Apply sorting
+		filtered.sort((a, b) => {
+			switch (sortOption) {
+				case "price-low":
+					return (a.price || 0) - (b.price || 0);
+				case "price-high":
+					return (b.price || 0) - (a.price || 0);
+				default:
+					return a.domain.localeCompare(b.domain);
+			}
+		});
+
+		return filtered;
+	};
+
+	// Handle bulk checking
+	const handleBulkCheck = async () => {
+		const names = bulkInput
+			.split("\n")
+			.map((n) => n.trim())
+			.filter((n) => n.length > 0);
+
+		if (names.length === 0) return;
+
+		setIsChecking(true);
+		setBulkProgress(0);
+
+		try {
+			const allDomainResults: DomainResult[] = [];
+			const allSocialResults: SocialResult[] = [];
+
+			for (let i = 0; i < names.length; i++) {
+				const name = names[i];
+
+				// Check domains
+				const domainRes = await fetch("/apps/name-checker/api/check-domain", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ name }),
+				});
+				const domainData = await domainRes.json();
+				allDomainResults.push(...(domainData.results || []));
+
+				// Check social media
+				const socialRes = await fetch("/apps/name-checker/api/check-social", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ username: name }),
+				});
+				const socialData = await socialRes.json();
+				allSocialResults.push(...(socialData.results || []));
+
+				setBulkProgress(Math.round(((i + 1) / names.length) * 100));
+			}
+
+			setDomainResults(allDomainResults);
+			setSocialResults(allSocialResults);
+			setBulkMode(false);
+		} catch (error) {
+			console.error("Bulk check error:", error);
+		} finally {
+			setIsChecking(false);
+			setBulkProgress(0);
+		}
+	};
+
+	// Export results as CSV
+	const exportResults = () => {
+		const csvContent = [
+			["Type", "Name", "Available", "Price/Platform"],
+			...domainResults.map((d) => [
+				"Domain",
+				d.domain,
+				d.available ? "Yes" : "No",
+				d.price ? `$${d.price}` : "N/A",
+			]),
+			...socialResults.map((s) => [
+				"Social",
+				s.platform,
+				s.available ? "Yes" : "No",
+				s.url || "N/A",
+			]),
+		]
+			.map((row) => row.join(","))
+			.join("\n");
+
+		const blob = new Blob([csvContent], { type: "text/csv" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `name-checker-results-${Date.now()}.csv`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
+
 	const availableDomains = domainResults.filter((d) => d.available === true);
 	const takenDomains = domainResults.filter((d) => d.available === false);
 	const unknownDomains = domainResults.filter((d) => d.available === null);
 	const availableSocial = socialResults.filter((s) => s.available === true);
 	const takenSocial = socialResults.filter((s) => s.available === false);
+
+	// Apply filters
+	const filteredAvailableDomains = filterDomains(availableDomains);
+	const filteredTakenDomains = filterDomains(takenDomains);
+	const filteredUnknownDomains = filterDomains(unknownDomains);
 
 	return (
 		<div className="min-h-screen bg-white text-black p-4 md:p-8 flex flex-col">
@@ -233,21 +385,33 @@ export default function NameChecker() {
 
 					{/* Action Buttons */}
 					<div className="flex flex-col items-center gap-2 mt-4">
-						<button
-							type="button"
-							onClick={handleGenerateNames}
-							disabled={isGenerating || !searchName.trim() || cooldownSeconds > 0}
-							className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
-						>
-							{isGenerating ? (
-								<Loader2 className="w-4 h-4 animate-spin" />
-							) : (
-								<Sparkles className="w-4 h-4" />
-							)}
-							{cooldownSeconds > 0
-								? `Wait ${cooldownSeconds}s...`
-								: "Generate Similar Names"}
-						</button>
+						<div className="flex flex-wrap justify-center gap-2">
+							<button
+								type="button"
+								onClick={handleGenerateNames}
+								disabled={
+									isGenerating || !searchName.trim() || cooldownSeconds > 0
+								}
+								className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
+							>
+								{isGenerating ? (
+									<Loader2 className="w-4 h-4 animate-spin" />
+								) : (
+									<Sparkles className="w-4 h-4" />
+								)}
+								{cooldownSeconds > 0
+									? `Wait ${cooldownSeconds}s...`
+									: "Generate Similar Names"}
+							</button>
+							<button
+								type="button"
+								onClick={() => setBulkMode(!bulkMode)}
+								className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white transition-all"
+							>
+								<Users className="w-4 h-4" />
+								{bulkMode ? "Single Check" : "Bulk Check"}
+							</button>
+						</div>
 						{rateLimitError && (
 							<p className="text-sm text-red-600 font-medium">
 								⚠️ {rateLimitError}
@@ -255,6 +419,56 @@ export default function NameChecker() {
 						)}
 					</div>
 				</motion.div>
+
+				{/* Bulk Check Mode */}
+				<AnimatePresence>
+					{bulkMode && (
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							exit={{ opacity: 0, height: 0 }}
+							className="mb-8 border-2 border-black p-6"
+						>
+							<h2 className="text-2xl font-bold mb-3">Bulk Check Mode</h2>
+							<p className="text-sm text-gray-600 mb-4">
+								Enter multiple names (one per line) to check all at once
+							</p>
+							<textarea
+								value={bulkInput}
+								onChange={(e) => setBulkInput(e.target.value)}
+								placeholder="brandname1&#10;brandname2&#10;brandname3&#10;..."
+								className="w-full px-4 py-3 border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm h-48 resize-none"
+							/>
+							<div className="flex justify-between items-center mt-4">
+								<p className="text-sm text-gray-600">
+									{bulkInput.split("\n").filter((n) => n.trim()).length} names
+									to check
+								</p>
+								<button
+									type="button"
+									onClick={handleBulkCheck}
+									disabled={
+										isChecking ||
+										bulkInput.split("\n").filter((n) => n.trim()).length === 0
+									}
+									className="flex items-center gap-2 px-6 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 transition-colors"
+								>
+									{isChecking ? (
+										<>
+											<Loader2 className="w-4 h-4 animate-spin" />
+											Checking... {bulkProgress}%
+										</>
+									) : (
+										<>
+											<Search className="w-4 h-4" />
+											Check All Names
+										</>
+									)}
+								</button>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
 				{/* AI Suggestions */}
 				<AnimatePresence>
@@ -371,18 +585,115 @@ export default function NameChecker() {
 								<Users className="w-4 h-4" />
 								Social Media ({socialResults.length})
 							</button>
+							<button
+								type="button"
+								onClick={exportResults}
+								className="ml-auto flex items-center gap-2 px-4 py-3 border-l-2 border-black hover:bg-gray-100 transition-colors text-sm"
+							>
+								Export CSV
+							</button>
 						</div>
+
+						{/* Filters - Show only on domains tab */}
+						{activeTab === "domains" && domainResults.length > 0 && (
+							<div className="mb-6 p-4 border-2 border-gray-200">
+								<div className="flex justify-between items-center mb-3">
+									<h3 className="font-bold text-lg">Filters & Sort</h3>
+									<button
+										type="button"
+										onClick={() => {
+											setPriceFilter("all");
+											setCategoryFilter("all");
+											setSortOption("name");
+										}}
+										className="text-sm text-gray-600 hover:text-black"
+									>
+										Reset Filters
+									</button>
+								</div>
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+									{/* Price Filter */}
+									<div>
+										<label className="block text-sm font-medium mb-2">
+											Price Range
+											<select
+												value={priceFilter}
+												onChange={(e) =>
+													setPriceFilter(e.target.value as PriceFilter)
+												}
+												className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-black mt-2"
+											>
+												<option value="all">All Prices</option>
+												<option value="under10">Under $10</option>
+												<option value="10-30">$10 - $30</option>
+												<option value="30-50">$30 - $50</option>
+												<option value="over50">Over $50</option>
+											</select>
+										</label>
+									</div>
+
+									{/* Category Filter */}
+									<div>
+										<label className="block text-sm font-medium mb-2">
+											Category
+											<select
+												value={categoryFilter}
+												onChange={(e) =>
+													setCategoryFilter(e.target.value as CategoryFilter)
+												}
+												className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-black mt-2"
+											>
+												<option value="all">All Categories</option>
+												<option value="generic">
+													Generic (.com, .net, .org)
+												</option>
+												<option value="tech">Tech (.io, .ai, .dev)</option>
+												<option value="business">Business (.co, .biz)</option>
+												<option value="creative">
+													Creative (.design, .studio)
+												</option>
+												<option value="ecommerce">
+													E-commerce (.shop, .store)
+												</option>
+												<option value="community">
+													Community (.club, .social)
+												</option>
+											</select>
+										</label>
+									</div>
+
+									{/* Sort Option */}
+									<div>
+										<label className="block text-sm font-medium mb-2">
+											Sort By
+											<select
+												value={sortOption}
+												onChange={(e) =>
+													setSortOption(e.target.value as SortOption)
+												}
+												className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-black mt-2"
+											>
+												<option value="name">Name (A-Z)</option>
+												<option value="price-low">Price (Low to High)</option>
+												<option value="price-high">Price (High to Low)</option>
+											</select>
+										</label>
+									</div>
+								</div>
+							</div>
+						)}
 
 						{/* Domain Results */}
 						{activeTab === "domains" && (
 							<div className="space-y-6">
-								{availableDomains.length > 0 && (
+								{filteredAvailableDomains.length > 0 && (
 									<div>
 										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<Check className="w-5 h-5" /> Available Domains
+											<Check className="w-5 h-5" /> Available Domains (
+											{filteredAvailableDomains.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{availableDomains.map((domain, index) => (
+											{filteredAvailableDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
@@ -393,11 +704,18 @@ export default function NameChecker() {
 													<div className="flex justify-between items-start">
 														<div>
 															<p className="font-bold">{domain.domain}</p>
-															{domain.price && (
-																<p className="text-sm text-gray-600">
-																	${domain.price}/year
-																</p>
-															)}
+															<div className="flex items-center gap-2 mt-1">
+																{domain.price && (
+																	<p className="text-sm text-gray-600">
+																		${domain.price}/year
+																	</p>
+																)}
+																{domain.category && (
+																	<span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700">
+																		{domain.category}
+																	</span>
+																)}
+															</div>
 														</div>
 														<Check className="w-5 h-5 text-green-600" />
 													</div>
@@ -407,13 +725,14 @@ export default function NameChecker() {
 									</div>
 								)}
 
-								{takenDomains.length > 0 && (
+								{filteredTakenDomains.length > 0 && (
 									<div>
 										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<X className="w-5 h-5" /> Taken Domains
+											<X className="w-5 h-5" /> Taken Domains (
+											{filteredTakenDomains.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{takenDomains.map((domain, index) => (
+											{filteredTakenDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
@@ -426,9 +745,18 @@ export default function NameChecker() {
 															<p className="font-bold line-through">
 																{domain.domain}
 															</p>
-															{domain.price && (
-																<p className="text-sm">${domain.price}/year</p>
-															)}
+															<div className="flex items-center gap-2 mt-1">
+																{domain.price && (
+																	<p className="text-sm">
+																		${domain.price}/year
+																	</p>
+																)}
+																{domain.category && (
+																	<span className="text-xs px-2 py-0.5 bg-gray-300 text-gray-600">
+																		{domain.category}
+																	</span>
+																)}
+															</div>
 														</div>
 														<X className="w-5 h-5 text-red-600" />
 													</div>
@@ -438,13 +766,13 @@ export default function NameChecker() {
 									</div>
 								)}
 
-								{unknownDomains.length > 0 && (
+								{filteredUnknownDomains.length > 0 && (
 									<div>
 										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											Unknown Status
+											Unknown Status ({filteredUnknownDomains.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-											{unknownDomains.map((domain, index) => (
+											{filteredUnknownDomains.map((domain, index) => (
 												<motion.div
 													key={domain.domain}
 													initial={{ opacity: 0, x: -20 }}
@@ -455,11 +783,18 @@ export default function NameChecker() {
 													<div className="flex justify-between items-start">
 														<div>
 															<p className="font-bold">{domain.domain}</p>
-															{domain.price && (
-																<p className="text-sm text-gray-600">
-																	${domain.price}/year
-																</p>
-															)}
+															<div className="flex items-center gap-2 mt-1">
+																{domain.price && (
+																	<p className="text-sm text-gray-600">
+																		${domain.price}/year
+																	</p>
+																)}
+																{domain.category && (
+																	<span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700">
+																		{domain.category}
+																	</span>
+																)}
+															</div>
 														</div>
 														<span className="text-sm text-gray-500">?</span>
 													</div>
@@ -468,6 +803,25 @@ export default function NameChecker() {
 										</div>
 									</div>
 								)}
+
+								{filteredAvailableDomains.length === 0 &&
+									filteredTakenDomains.length === 0 &&
+									filteredUnknownDomains.length === 0 &&
+									domainResults.length > 0 && (
+										<div className="text-center py-8 text-gray-500">
+											<p>No domains match the current filters.</p>
+											<button
+												type="button"
+												onClick={() => {
+													setPriceFilter("all");
+													setCategoryFilter("all");
+												}}
+												className="mt-2 text-sm text-black hover:underline"
+											>
+												Reset filters
+											</button>
+										</div>
+									)}
 							</div>
 						)}
 

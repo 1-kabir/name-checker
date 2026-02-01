@@ -108,6 +108,7 @@ export async function POST(request: Request) {
 			const tldInfo = POPULAR_TLDS.find((t) => t.tld === tld) || {
 				tld,
 				price: null,
+				category: "unknown",
 			};
 
 			return NextResponse.json({
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
 				available: availability.available,
 				price: tldInfo.price,
 				tld: tld,
+				category: tldInfo.category,
 			});
 		}
 
@@ -130,6 +132,7 @@ export async function POST(request: Request) {
 					tld: tldInfo.tld,
 					available: availability.available,
 					price: tldInfo.price,
+					category: tldInfo.category,
 				};
 			}),
 		);

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getGlobalRateLimitStatus, getClientIP, checkCooldown } from "@/lib/rateLimit";
+import {
+	checkCooldown,
+	getClientIP,
+	getGlobalRateLimitStatus,
+} from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
 	try {
