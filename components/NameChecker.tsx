@@ -25,6 +25,7 @@ interface SocialResult {
 	url: string | null;
 	available: boolean | null;
 	status: string;
+	username?: string;
 }
 
 type PriceFilter = "all" | "under10" | "10-30" | "30-50" | "over50";
@@ -114,7 +115,13 @@ export default function NameChecker() {
 				body: JSON.stringify({ username: searchName }),
 			});
 			const socialData = await socialRes.json();
-			setSocialResults(socialData.results || []);
+			const cleanedName = searchName.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
+			setSocialResults(
+				(socialData.results || []).map((r: SocialResult) => ({
+					...r,
+					username: cleanedName,
+				})),
+			);
 		} catch (error) {
 			console.error("Search error:", error);
 		} finally {
@@ -277,7 +284,13 @@ export default function NameChecker() {
 					body: JSON.stringify({ username: name }),
 				});
 				const socialData = await socialRes.json();
-				allSocialResults.push(...(socialData.results || []));
+				const cleanUsername = name.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
+				allSocialResults.push(
+					...(socialData.results || []).map((r: SocialResult) => ({
+						...r,
+						username: cleanUsername,
+					})),
+				);
 
 				setBulkProgress(Math.round(((i + 1) / names.length) * 100));
 			}
@@ -329,6 +342,7 @@ export default function NameChecker() {
 	const unknownDomains = domainResults.filter((d) => d.available === null);
 	const availableSocial = socialResults.filter((s) => s.available === true);
 	const takenSocial = socialResults.filter((s) => s.available === false);
+	const unknownSocial = socialResults.filter((s) => s.available === null);
 
 	// Apply filters
 	const filteredAvailableDomains = filterDomains(availableDomains);
@@ -413,9 +427,7 @@ export default function NameChecker() {
 							</button>
 						</div>
 						{rateLimitError && (
-							<p className="text-sm text-red-600 font-medium">
-								⚠️ {rateLimitError}
-							</p>
+							<p className="text-sm  font-medium">⚠️ {rateLimitError}</p>
 						)}
 					</div>
 				</motion.div>
@@ -571,7 +583,7 @@ export default function NameChecker() {
 								}`}
 							>
 								<Globe className="w-4 h-4" />
-								Domains ({domainResults.length})
+								Domains ({availableDomains.length}/{domainResults.length})
 							</button>
 							<button
 								type="button"
@@ -583,7 +595,7 @@ export default function NameChecker() {
 								}`}
 							>
 								<Users className="w-4 h-4" />
-								Social Media ({socialResults.length})
+								Social ({availableSocial.length}/{socialResults.length})
 							</button>
 							<button
 								type="button"
@@ -717,7 +729,7 @@ export default function NameChecker() {
 																)}
 															</div>
 														</div>
-														<Check className="w-5 h-5 text-green-600" />
+														<Check className="w-5 h-5 " />
 													</div>
 												</motion.div>
 											))}
@@ -758,7 +770,7 @@ export default function NameChecker() {
 																)}
 															</div>
 														</div>
-														<X className="w-5 h-5 text-red-600" />
+														<X className="w-5 h-5 " />
 													</div>
 												</motion.div>
 											))}
@@ -831,12 +843,13 @@ export default function NameChecker() {
 								{availableSocial.length > 0 && (
 									<div>
 										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<Check className="w-5 h-5" /> Available Usernames
+											<Check className="w-5 h-5" /> Available Usernames (
+											{availableSocial.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 											{availableSocial.map((social, index) => (
 												<motion.a
-													key={social.platform}
+													key={`${social.platform}-${social.username}`}
 													href={social.url || "#"}
 													target="_blank"
 													rel="noopener noreferrer"
@@ -845,9 +858,14 @@ export default function NameChecker() {
 													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-black bg-white hover:bg-gray-50 transition-colors"
 												>
-													<div className="flex justify-between items-center">
-														<p className="font-bold">{social.platform}</p>
-														<Check className="w-5 h-5 text-green-600" />
+													<div className="flex justify-between items-start">
+														<div>
+															<p className="font-bold">{social.platform}</p>
+															<p className="text-sm text-gray-600 mt-1">
+																@{social.username}
+															</p>
+														</div>
+														<Check className="w-5 h-5" />
 													</div>
 												</motion.a>
 											))}
@@ -858,12 +876,13 @@ export default function NameChecker() {
 								{takenSocial.length > 0 && (
 									<div>
 										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<X className="w-5 h-5" /> Taken Usernames
+											<X className="w-5 h-5" /> Taken Usernames (
+											{takenSocial.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 											{takenSocial.map((social, index) => (
 												<motion.a
-													key={social.platform}
+													key={`${social.platform}-${social.username}`}
 													href={social.url || "#"}
 													target="_blank"
 													rel="noopener noreferrer"
@@ -872,11 +891,46 @@ export default function NameChecker() {
 													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
 												>
-													<div className="flex justify-between items-center">
-														<p className="font-bold line-through">
-															{social.platform}
-														</p>
-														<X className="w-5 h-5 text-red-600" />
+													<div className="flex justify-between items-start">
+														<div>
+															<p className="font-bold line-through">
+																{social.platform}
+															</p>
+															<p className="text-sm mt-1">@{social.username}</p>
+														</div>
+														<X className="w-5 h-5" />
+													</div>
+												</motion.a>
+											))}
+										</div>
+									</div>
+								)}
+
+								{unknownSocial.length > 0 && (
+									<div>
+										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+											Unknown Status ({unknownSocial.length})
+										</h3>
+										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+											{unknownSocial.map((social, index) => (
+												<motion.a
+													key={`${social.platform}-${social.username}`}
+													href={social.url || "#"}
+													target="_blank"
+													rel="noopener noreferrer"
+													initial={{ opacity: 0, x: -20 }}
+													animate={{ opacity: 1, x: 0 }}
+													transition={{ delay: index * 0.05 }}
+													className="p-4 border-2 border-gray-300 bg-white text-gray-700"
+												>
+													<div className="flex justify-between items-start">
+														<div>
+															<p className="font-bold">{social.platform}</p>
+															<p className="text-sm text-gray-600 mt-1">
+																@{social.username}
+															</p>
+														</div>
+														<span className="text-sm text-gray-500">?</span>
 													</div>
 												</motion.a>
 											))}
