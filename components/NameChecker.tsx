@@ -5,9 +5,9 @@ import {
 	Check,
 	Globe,
 	Loader2,
+	Plus,
 	Search,
 	Sparkles,
-	Users,
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -40,7 +40,7 @@ type CategoryFilter =
 type SortOption = "name" | "price-low" | "price-high";
 
 export default function NameChecker() {
-	const [searchName, setSearchName] = useState("");
+	const [searchNames, setSearchNames] = useState<string[]>([""]);
 	const [isChecking, setIsChecking] = useState(false);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [domainResults, setDomainResults] = useState<DomainResult[]>([]);
@@ -59,10 +59,9 @@ export default function NameChecker() {
 	const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 	const [sortOption, setSortOption] = useState<SortOption>("name");
 
-	// Bulk checking states
-	const [bulkMode, setBulkMode] = useState(false);
-	const [bulkInput, setBulkInput] = useState("");
-	const [bulkProgress, setBulkProgress] = useState(0);
+	// Search progress
+	const [searchProgress, setSearchProgress] = useState(0);
+	const [searchedNames, setSearchedNames] = useState<string[]>([]);
 
 	// Check cooldown status on mount
 	useEffect(() => {
@@ -91,46 +90,83 @@ export default function NameChecker() {
 		return () => clearInterval(interval);
 	}, [cooldownSeconds]);
 
+	const addSearchField = () => {
+		setSearchNames([...searchNames, ""]);
+	};
+
+	const removeSearchField = (index: number) => {
+		if (searchNames.length === 1) return;
+		setSearchNames(searchNames.filter((_, i) => i !== index));
+	};
+
+	const updateSearchField = (index: number, value: string) => {
+		const updated = [...searchNames];
+		updated[index] = value;
+		setSearchNames(updated);
+	};
+
 	const handleSearch = async () => {
-		if (!searchName.trim()) return;
+		const validNames = searchNames.filter((n) => n.trim());
+		if (validNames.length === 0) return;
 
 		setIsChecking(true);
 		setDomainResults([]);
 		setSocialResults([]);
+		setSearchProgress(0);
+		setSearchedNames(validNames);
 
 		try {
-			// Check domains
-			const domainRes = await fetch("/apps/name-checker/api/check-domain", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: searchName }),
-			});
-			const domainData = await domainRes.json();
-			setDomainResults(domainData.results || []);
+			const totalNames = validNames.length;
+			let completed = 0;
 
-			// Check social media
-			const socialRes = await fetch("/apps/name-checker/api/check-social", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ username: searchName }),
-			});
-			const socialData = await socialRes.json();
-			const cleanedName = searchName.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
-			setSocialResults(
-				(socialData.results || []).map((r: SocialResult) => ({
-					...r,
-					username: cleanedName,
-				})),
+			const results = await Promise.all(
+				validNames.map(async (name) => {
+					// Check domains
+					const domainRes = await fetch("/apps/name-checker/api/check-domain", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ name }),
+					});
+					const domainData = await domainRes.json();
+
+					// Check social media
+					const socialRes = await fetch("/apps/name-checker/api/check-social", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ username: name }),
+					});
+					const socialData = await socialRes.json();
+					const cleanedName = name.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
+
+					completed++;
+					setSearchProgress(Math.round((completed / totalNames) * 100));
+
+					return {
+						domains: domainData.results || [],
+						socials: (socialData.results || []).map((r: SocialResult) => ({
+							...r,
+							username: cleanedName,
+						})),
+					};
+				}),
 			);
+
+			const allDomains = results.flatMap((r) => r.domains);
+			const allSocials = results.flatMap((r) => r.socials);
+
+			setDomainResults(allDomains);
+			setSocialResults(allSocials);
 		} catch (error) {
 			console.error("Search error:", error);
 		} finally {
 			setIsChecking(false);
+			setSearchProgress(0);
 		}
 	};
 
 	const handleGenerateNames = async () => {
-		if (!searchName.trim()) return;
+		const validNames = searchNames.filter((n) => n.trim());
+		if (validNames.length === 0) return;
 
 		setIsGenerating(true);
 		setRateLimitError(null);
@@ -138,7 +174,7 @@ export default function NameChecker() {
 			const res = await fetch("/apps/name-checker/api/generate-names", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: searchName, count: 12 }),
+				body: JSON.stringify({ name: validNames[0], count: 12 }),
 			});
 
 			const data = await res.json();
@@ -249,63 +285,6 @@ export default function NameChecker() {
 		return filtered;
 	};
 
-	// Handle bulk checking
-	const handleBulkCheck = async () => {
-		const names = bulkInput
-			.split("\n")
-			.map((n) => n.trim())
-			.filter((n) => n.length > 0);
-
-		if (names.length === 0) return;
-
-		setIsChecking(true);
-		setBulkProgress(0);
-
-		try {
-			const allDomainResults: DomainResult[] = [];
-			const allSocialResults: SocialResult[] = [];
-
-			for (let i = 0; i < names.length; i++) {
-				const name = names[i];
-
-				// Check domains
-				const domainRes = await fetch("/apps/name-checker/api/check-domain", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ name }),
-				});
-				const domainData = await domainRes.json();
-				allDomainResults.push(...(domainData.results || []));
-
-				// Check social media
-				const socialRes = await fetch("/apps/name-checker/api/check-social", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ username: name }),
-				});
-				const socialData = await socialRes.json();
-				const cleanUsername = name.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
-				allSocialResults.push(
-					...(socialData.results || []).map((r: SocialResult) => ({
-						...r,
-						username: cleanUsername,
-					})),
-				);
-
-				setBulkProgress(Math.round(((i + 1) / names.length) * 100));
-			}
-
-			setDomainResults(allDomainResults);
-			setSocialResults(allSocialResults);
-			setBulkMode(false);
-		} catch (error) {
-			console.error("Bulk check error:", error);
-		} finally {
-			setIsChecking(false);
-			setBulkProgress(0);
-		}
-	};
-
 	// Export results as CSV
 	const exportResults = () => {
 		const csvContent = [
@@ -318,7 +297,7 @@ export default function NameChecker() {
 			]),
 			...socialResults.map((s) => [
 				"Social",
-				s.platform,
+				`@${s.username} (${s.platform})`,
 				s.available ? "Yes" : "No",
 				s.url || "N/A",
 			]),
@@ -374,37 +353,86 @@ export default function NameChecker() {
 					transition={{ delay: 0.1 }}
 					className="mb-8"
 				>
-					<div className="relative max-w-2xl mx-auto">
-						<input
-							type="text"
-							value={searchName}
-							onChange={(e) => setSearchName(e.target.value)}
-							onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-							placeholder="Enter a brand name..."
-							className="w-full px-6 py-4 text-lg border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black transition-all"
-						/>
-						<button
-							type="button"
-							onClick={handleSearch}
-							disabled={isChecking || !searchName.trim()}
-							className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2 bg-black text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-gray-800"
-						>
-							{isChecking ? (
-								<Loader2 className="w-5 h-5 animate-spin" />
-							) : (
-								<Search className="w-5 h-5" />
-							)}
-						</button>
-					</div>
+					<div className="max-w-3xl mx-auto space-y-3">
+						{/* Search Names Display (when results exist) */}
+						{searchedNames.length > 0 && domainResults.length > 0 && (
+							<div className="mb-4 p-4 border-2 border-black bg-gray-50">
+								<p className="text-sm font-medium mb-2">
+									Searched: {searchedNames.join(", ")}
+								</p>
+							</div>
+						)}
 
-					{/* Action Buttons */}
-					<div className="flex flex-col items-center gap-2 mt-4">
-						<div className="flex flex-wrap justify-center gap-2">
+						{/* Dynamic Search Fields */}
+						{searchNames.map((name, index) => (
+							<motion.div
+								key={index}
+								initial={{ opacity: 0, x: -20 }}
+								animate={{ opacity: 1, x: 0 }}
+								transition={{ delay: index * 0.05 }}
+								className="flex gap-2"
+							>
+								<input
+									type="text"
+									value={name}
+									onChange={(e) => updateSearchField(index, e.target.value)}
+									onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+									placeholder={`Enter brand name ${searchNames.length > 1 ? `#${index + 1}` : ""}...`}
+									className="flex-1 px-6 py-4 text-lg border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black transition-all"
+								/>
+								{searchNames.length > 1 && (
+									<button
+										type="button"
+										onClick={() => removeSearchField(index)}
+										className="px-4 py-4 border-2 border-black hover:bg-black hover:text-white transition-all"
+										title="Remove field"
+									>
+										<X className="w-5 h-5" />
+									</button>
+								)}
+							</motion.div>
+						))}
+
+						{/* Add Field and Search Buttons */}
+						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={addSearchField}
+								disabled={isChecking}
+								className="flex items-center gap-2 px-6 py-3 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
+							>
+								<Plus className="w-5 h-5" />
+								Add Name
+							</button>
+							<button
+								type="button"
+								onClick={handleSearch}
+								disabled={isChecking || searchNames.every((n) => !n.trim())}
+								className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-black text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-gray-800"
+							>
+								{isChecking ? (
+									<>
+										<Loader2 className="w-5 h-5 animate-spin" />
+										Checking... {searchProgress > 0 && `${searchProgress}%`}
+									</>
+								) : (
+									<>
+										<Search className="w-5 h-5" />
+										Check {searchNames.filter((n) => n.trim()).length > 1 ? `${searchNames.filter((n) => n.trim()).length} Names` : "Name"}
+									</>
+								)}
+							</button>
+						</div>
+
+						{/* Generate Names Button */}
+						<div className="flex flex-col items-center gap-2">
 							<button
 								type="button"
 								onClick={handleGenerateNames}
 								disabled={
-									isGenerating || !searchName.trim() || cooldownSeconds > 0
+									isGenerating ||
+									searchNames.every((n) => !n.trim()) ||
+									cooldownSeconds > 0
 								}
 								className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
 							>
@@ -417,70 +445,12 @@ export default function NameChecker() {
 									? `Wait ${cooldownSeconds}s...`
 									: "Generate Similar Names"}
 							</button>
-							<button
-								type="button"
-								onClick={() => setBulkMode(!bulkMode)}
-								className="flex items-center gap-2 px-6 py-2 border-2 border-black hover:bg-black hover:text-white transition-all"
-							>
-								<Users className="w-4 h-4" />
-								{bulkMode ? "Single Check" : "Bulk Check"}
-							</button>
+							{rateLimitError && (
+								<p className="text-sm font-medium">⚠️ {rateLimitError}</p>
+							)}
 						</div>
-						{rateLimitError && (
-							<p className="text-sm  font-medium">⚠️ {rateLimitError}</p>
-						)}
 					</div>
 				</motion.div>
-
-				{/* Bulk Check Mode */}
-				<AnimatePresence>
-					{bulkMode && (
-						<motion.div
-							initial={{ opacity: 0, height: 0 }}
-							animate={{ opacity: 1, height: "auto" }}
-							exit={{ opacity: 0, height: 0 }}
-							className="mb-8 border-2 border-black p-6"
-						>
-							<h2 className="text-2xl font-bold mb-3">Bulk Check Mode</h2>
-							<p className="text-sm text-gray-600 mb-4">
-								Enter multiple names (one per line) to check all at once
-							</p>
-							<textarea
-								value={bulkInput}
-								onChange={(e) => setBulkInput(e.target.value)}
-								placeholder="brandname1&#10;brandname2&#10;brandname3&#10;..."
-								className="w-full px-4 py-3 border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm h-48 resize-none"
-							/>
-							<div className="flex justify-between items-center mt-4">
-								<p className="text-sm text-gray-600">
-									{bulkInput.split("\n").filter((n) => n.trim()).length} names
-									to check
-								</p>
-								<button
-									type="button"
-									onClick={handleBulkCheck}
-									disabled={
-										isChecking ||
-										bulkInput.split("\n").filter((n) => n.trim()).length === 0
-									}
-									className="flex items-center gap-2 px-6 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 transition-colors"
-								>
-									{isChecking ? (
-										<>
-											<Loader2 className="w-4 h-4 animate-spin" />
-											Checking... {bulkProgress}%
-										</>
-									) : (
-										<>
-											<Search className="w-4 h-4" />
-											Check All Names
-										</>
-									)}
-								</button>
-							</div>
-						</motion.div>
-					)}
-				</AnimatePresence>
 
 				{/* AI Suggestions */}
 				<AnimatePresence>
@@ -594,7 +564,6 @@ export default function NameChecker() {
 										: "bg-white text-black hover:bg-gray-100"
 								}`}
 							>
-								<Users className="w-4 h-4" />
 								Social ({availableSocial.length}/{socialResults.length})
 							</button>
 							<button
