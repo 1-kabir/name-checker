@@ -321,7 +321,10 @@ export default function NameChecker() {
 	const unknownDomains = domainResults.filter((d) => d.available === null);
 	const availableSocial = socialResults.filter((s) => s.available === true);
 	const takenSocial = socialResults.filter((s) => s.available === false);
-	const unknownSocial = socialResults.filter((s) => s.available === null);
+	const manualSocial = socialResults.filter((s) => s.status === "manual");
+	const unknownSocial = socialResults.filter(
+		(s) => s.available === null && s.status !== "manual",
+	);
 
 	// Apply filters
 	const filteredAvailableDomains = filterDomains(availableDomains);
@@ -337,10 +340,10 @@ export default function NameChecker() {
 					animate={{ opacity: 1, y: 0 }}
 					className="text-center mb-12"
 				>
-					<h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tight">
+					<h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 tracking-tight">
 						Name Checker
 					</h1>
-					<p className="text-lg text-gray-600">
+					<p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-xl mx-auto">
 						Check domain availability, social media usernames, and generate
 						AI-powered brand names
 					</p>
@@ -356,8 +359,8 @@ export default function NameChecker() {
 					<div className="max-w-3xl mx-auto space-y-3">
 						{/* Search Names Display (when results exist) */}
 						{searchedNames.length > 0 && domainResults.length > 0 && (
-							<div className="mb-4 p-4 border-2 border-black bg-gray-50">
-								<p className="text-sm font-medium mb-2">
+							<div className="mb-4 p-3 border-2 border-black bg-gray-50">
+								<p className="text-sm font-medium break-words">
 									Searched: {searchedNames.join(", ")}
 								</p>
 							</div>
@@ -377,17 +380,17 @@ export default function NameChecker() {
 									value={name}
 									onChange={(e) => updateSearchField(index, e.target.value)}
 									onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-									placeholder={`Enter brand name ${searchNames.length > 1 ? `#${index + 1}` : ""}...`}
-									className="flex-1 px-6 py-4 text-lg border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black transition-all"
+									placeholder={`Brand name${searchNames.length > 1 ? ` #${index + 1}` : ""}...`}
+									className="flex-1 min-w-0 px-4 py-3 sm:px-6 sm:py-4 text-base sm:text-lg border-2 border-black rounded-none focus:outline-none focus:ring-2 focus:ring-black transition-all"
 								/>
 								{searchNames.length > 1 && (
 									<button
 										type="button"
 										onClick={() => removeSearchField(index)}
-										className="px-4 py-4 border-2 border-black hover:bg-black hover:text-white transition-all"
+										className="flex-none px-3 py-3 sm:px-4 sm:py-4 border-2 border-black hover:bg-black hover:text-white transition-all"
 										title="Remove field"
 									>
-										<X className="w-5 h-5" />
+										<X className="w-4 h-4 sm:w-5 sm:h-5" />
 									</button>
 								)}
 							</motion.div>
@@ -399,26 +402,27 @@ export default function NameChecker() {
 								type="button"
 								onClick={addSearchField}
 								disabled={isChecking}
-								className="flex items-center gap-2 px-6 py-3 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all"
+								className="flex-none flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
 							>
-								<Plus className="w-5 h-5" />
-								Add Name
+								<Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+								<span className="hidden xs:inline">Add</span>
+								<span className="xs:hidden">+</span>
 							</button>
 							<button
 								type="button"
 								onClick={handleSearch}
 								disabled={isChecking || searchNames.every((n) => !n.trim())}
-								className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-black text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-gray-800"
+								className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-black text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors hover:bg-gray-800 text-sm sm:text-base"
 							>
 								{isChecking ? (
 									<>
-										<Loader2 className="w-5 h-5 animate-spin" />
-										Checking... {searchProgress > 0 && `${searchProgress}%`}
+										<Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+										<span>Checking{searchProgress > 0 ? ` ${searchProgress}%` : "..."}</span>
 									</>
 								) : (
 									<>
-										<Search className="w-5 h-5" />
-										Check {searchNames.filter((n) => n.trim()).length > 1 ? `${searchNames.filter((n) => n.trim()).length} Names` : "Name"}
+										<Search className="w-4 h-4 sm:w-5 sm:h-5" />
+										<span>Check {searchNames.filter((n) => n.trim()).length > 1 ? `${searchNames.filter((n) => n.trim()).length} Names` : "Name"}</span>
 									</>
 								)}
 							</button>
@@ -461,14 +465,14 @@ export default function NameChecker() {
 							exit={{ opacity: 0, height: 0 }}
 							className="mb-8 border-2 border-black p-6"
 						>
-							<div className="flex justify-between items-center mb-4">
+							<div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-4">
 								<div>
-									<h2 className="text-2xl font-bold">AI Suggestions</h2>
+									<h2 className="text-xl sm:text-2xl font-bold">AI Suggestions</h2>
 									<p className="text-sm text-gray-600 mt-1">
 										{aiSuggestions.length} names generated • Click to select
 									</p>
 								</div>
-								<div className="flex gap-2">
+								<div className="flex gap-2 flex-shrink-0 items-start">
 									<button
 										type="button"
 										onClick={() => {
@@ -478,7 +482,7 @@ export default function NameChecker() {
 												setSelectedSuggestions(new Set(aiSuggestions));
 											}
 										}}
-										className="px-4 py-2 border-2 border-black hover:bg-gray-100 transition-colors text-sm"
+										className="px-3 sm:px-4 py-2 border-2 border-black hover:bg-gray-100 transition-colors text-sm"
 									>
 										{selectedSuggestions.size === aiSuggestions.length
 											? "Deselect All"
@@ -489,17 +493,17 @@ export default function NameChecker() {
 											type="button"
 											onClick={handleCheckSelected}
 											disabled={isChecking}
-											className="flex items-center gap-2 px-4 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 transition-colors"
+											className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 transition-colors text-sm"
 										>
 											{isChecking ? (
 												<>
 													<Loader2 className="w-4 h-4 animate-spin" />
-													Checking...
+													<span className="hidden sm:inline">Checking...</span>
 												</>
 											) : (
 												<>
 													<Search className="w-4 h-4" />
-													Check Selected ({selectedSuggestions.size})
+													<span>Check ({selectedSuggestions.size})</span>
 												</>
 											)}
 										</button>
@@ -542,34 +546,36 @@ export default function NameChecker() {
 						transition={{ delay: 0.2 }}
 					>
 						{/* Tabs */}
-						<div className="flex border-b-2 border-black mb-6">
+						<div className="flex flex-wrap border-b-2 border-black mb-6">
 							<button
 								type="button"
 								onClick={() => setActiveTab("domains")}
-								className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+								className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-colors ${
 									activeTab === "domains"
 										? "bg-black text-white"
 										: "bg-white text-black hover:bg-gray-100"
 								}`}
 							>
 								<Globe className="w-4 h-4" />
-								Domains ({availableDomains.length}/{domainResults.length})
+								<span>Domains</span>
+								<span className="text-xs opacity-75">({availableDomains.length}/{domainResults.length})</span>
 							</button>
 							<button
 								type="button"
 								onClick={() => setActiveTab("social")}
-								className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+								className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-colors ${
 									activeTab === "social"
 										? "bg-black text-white"
 										: "bg-white text-black hover:bg-gray-100"
 								}`}
 							>
-								Social ({availableSocial.length}/{socialResults.length})
+								<span>Social</span>
+								<span className="text-xs opacity-75">({availableSocial.length}/{socialResults.length})</span>
 							</button>
 							<button
 								type="button"
 								onClick={exportResults}
-								className="ml-auto flex items-center gap-2 px-4 py-3 border-l-2 border-black hover:bg-gray-100 transition-colors text-sm"
+								className="ml-auto flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 border-l-2 border-black hover:bg-gray-100 transition-colors text-xs sm:text-sm"
 							>
 								Export CSV
 							</button>
@@ -669,7 +675,7 @@ export default function NameChecker() {
 							<div className="space-y-6">
 								{filteredAvailableDomains.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2 flex-wrap">
 											<Check className="w-5 h-5" /> Available Domains (
 											{filteredAvailableDomains.length})
 										</h3>
@@ -682,23 +688,23 @@ export default function NameChecker() {
 													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-black bg-white"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold">{domain.domain}</p>
-															<div className="flex items-center gap-2 mt-1">
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base break-all">{domain.domain}</p>
+															<div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
 																{domain.price && (
-																	<p className="text-sm text-gray-600">
-																		${domain.price}/year
+																	<p className="text-xs sm:text-sm text-gray-600">
+																		${domain.price}/yr
 																	</p>
 																)}
 																{domain.category && (
-																	<span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700">
+																	<span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-700">
 																		{domain.category}
 																	</span>
 																)}
 															</div>
 														</div>
-														<Check className="w-5 h-5 " />
+														<Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
 													</div>
 												</motion.div>
 											))}
@@ -708,7 +714,7 @@ export default function NameChecker() {
 
 								{filteredTakenDomains.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2 flex-wrap">
 											<X className="w-5 h-5" /> Taken Domains (
 											{filteredTakenDomains.length})
 										</h3>
@@ -721,25 +727,23 @@ export default function NameChecker() {
 													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold line-through">
-																{domain.domain}
-															</p>
-															<div className="flex items-center gap-2 mt-1">
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base break-all line-through">{domain.domain}</p>
+															<div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
 																{domain.price && (
-																	<p className="text-sm">
-																		${domain.price}/year
+																	<p className="text-xs sm:text-sm">
+																		${domain.price}/yr
 																	</p>
 																)}
 																{domain.category && (
-																	<span className="text-xs px-2 py-0.5 bg-gray-300 text-gray-600">
+																	<span className="text-xs px-1.5 py-0.5 bg-gray-300 text-gray-600">
 																		{domain.category}
 																	</span>
 																)}
 															</div>
 														</div>
-														<X className="w-5 h-5 " />
+														<X className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
 													</div>
 												</motion.div>
 											))}
@@ -749,7 +753,7 @@ export default function NameChecker() {
 
 								{filteredUnknownDomains.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2 flex-wrap">
 											Unknown Status ({filteredUnknownDomains.length})
 										</h3>
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -761,23 +765,23 @@ export default function NameChecker() {
 													transition={{ delay: index * 0.05 }}
 													className="p-4 border-2 border-gray-300 bg-white text-gray-700"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold">{domain.domain}</p>
-															<div className="flex items-center gap-2 mt-1">
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base break-all">{domain.domain}</p>
+															<div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
 																{domain.price && (
-																	<p className="text-sm text-gray-600">
-																		${domain.price}/year
+																	<p className="text-xs sm:text-sm text-gray-600">
+																		${domain.price}/yr
 																	</p>
 																)}
 																{domain.category && (
-																	<span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700">
+																	<span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-700">
 																		{domain.category}
 																	</span>
 																)}
 															</div>
 														</div>
-														<span className="text-sm text-gray-500">?</span>
+														<span className="text-sm text-gray-400 flex-shrink-0">?</span>
 													</div>
 												</motion.div>
 											))}
@@ -811,11 +815,10 @@ export default function NameChecker() {
 							<div className="space-y-6">
 								{availableSocial.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<Check className="w-5 h-5" /> Available Usernames (
-											{availableSocial.length})
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
+											<Check className="w-5 h-5 flex-shrink-0" /> Available Usernames ({availableSocial.length})
 										</h3>
-										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+										<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
 											{availableSocial.map((social, index) => (
 												<motion.a
 													key={`${social.platform}-${social.username}`}
@@ -825,16 +828,16 @@ export default function NameChecker() {
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
 													transition={{ delay: index * 0.05 }}
-													className="p-4 border-2 border-black bg-white hover:bg-gray-50 transition-colors"
+													className="p-3 sm:p-4 border-2 border-black bg-white hover:bg-gray-50 transition-colors block"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold">{social.platform}</p>
-															<p className="text-sm text-gray-600 mt-1">
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base truncate">{social.platform}</p>
+															<p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">
 																@{social.username}
 															</p>
 														</div>
-														<Check className="w-5 h-5" />
+														<Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
 													</div>
 												</motion.a>
 											))}
@@ -844,11 +847,10 @@ export default function NameChecker() {
 
 								{takenSocial.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											<X className="w-5 h-5" /> Taken Usernames (
-											{takenSocial.length})
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
+											<X className="w-5 h-5 flex-shrink-0" /> Taken Usernames ({takenSocial.length})
 										</h3>
-										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+										<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
 											{takenSocial.map((social, index) => (
 												<motion.a
 													key={`${social.platform}-${social.username}`}
@@ -858,16 +860,47 @@ export default function NameChecker() {
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
 													transition={{ delay: index * 0.05 }}
-													className="p-4 border-2 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
+													className="p-3 sm:p-4 border-2 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors block"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold line-through">
-																{social.platform}
-															</p>
-															<p className="text-sm mt-1">@{social.username}</p>
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base line-through truncate">{social.platform}</p>
+															<p className="text-xs sm:text-sm mt-0.5 truncate">@{social.username}</p>
 														</div>
-														<X className="w-5 h-5" />
+														<X className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+													</div>
+												</motion.a>
+											))}
+										</div>
+									</div>
+								)}
+
+								{manualSocial.length > 0 && (
+									<div>
+										<h3 className="text-lg sm:text-xl font-bold mb-1 flex items-center gap-2">
+											Manual Check Required ({manualSocial.length})
+										</h3>
+										<p className="text-sm text-gray-500 mb-3">
+											These platforms require login to verify. Click to check manually.
+										</p>
+										<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+											{manualSocial.map((social, index) => (
+												<motion.a
+													key={`${social.platform}-${social.username}`}
+													href={social.url || "#"}
+													target="_blank"
+													rel="noopener noreferrer"
+													initial={{ opacity: 0, x: -20 }}
+													animate={{ opacity: 1, x: 0 }}
+													transition={{ delay: index * 0.05 }}
+													className="p-3 sm:p-4 border-2 border-dashed border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors block"
+												>
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base truncate">{social.platform}</p>
+															<p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">@{social.username}</p>
+														</div>
+														<span className="text-xs text-gray-400 flex-shrink-0">↗</span>
 													</div>
 												</motion.a>
 											))}
@@ -877,10 +910,10 @@ export default function NameChecker() {
 
 								{unknownSocial.length > 0 && (
 									<div>
-										<h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-											Unknown Status ({unknownSocial.length})
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2">
+											Check Failed ({unknownSocial.length})
 										</h3>
-										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+										<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
 											{unknownSocial.map((social, index) => (
 												<motion.a
 													key={`${social.platform}-${social.username}`}
@@ -890,16 +923,14 @@ export default function NameChecker() {
 													initial={{ opacity: 0, x: -20 }}
 													animate={{ opacity: 1, x: 0 }}
 													transition={{ delay: index * 0.05 }}
-													className="p-4 border-2 border-gray-300 bg-white text-gray-700"
+													className="p-3 sm:p-4 border-2 border-gray-200 bg-white text-gray-400 block"
 												>
-													<div className="flex justify-between items-start">
-														<div>
-															<p className="font-bold">{social.platform}</p>
-															<p className="text-sm text-gray-600 mt-1">
-																@{social.username}
-															</p>
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className="font-bold text-sm sm:text-base truncate">{social.platform}</p>
+															<p className="text-xs sm:text-sm mt-0.5 truncate">@{social.username}</p>
 														</div>
-														<span className="text-sm text-gray-500">?</span>
+														<span className="text-sm flex-shrink-0">?</span>
 													</div>
 												</motion.a>
 											))}

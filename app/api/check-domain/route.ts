@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 
-// Popular TLDs with approximate price data - organized by category
+// Popular TLDs with 2026 pricing — organized by category
 const POPULAR_TLDS = [
-	// Generic top-level domains (most popular)
+	// ─── Generic ───
 	{ tld: "com", price: 12.99, category: "generic" },
 	{ tld: "net", price: 14.99, category: "generic" },
 	{ tld: "org", price: 13.99, category: "generic" },
 	{ tld: "info", price: 18.99, category: "generic" },
 	{ tld: "biz", price: 17.99, category: "generic" },
+	{ tld: "me", price: 19.99, category: "generic" },
+	{ tld: "name", price: 9.99, category: "generic" },
 
-	// Tech & Development TLDs
+	// ─── Tech & Development ───
 	{ tld: "io", price: 39.99, category: "tech" },
 	{ tld: "ai", price: 89.99, category: "tech" },
 	{ tld: "app", price: 14.99, category: "tech" },
@@ -20,8 +22,14 @@ const POPULAR_TLDS = [
 	{ tld: "software", price: 29.99, category: "tech" },
 	{ tld: "systems", price: 22.99, category: "tech" },
 	{ tld: "tools", price: 29.99, category: "tech" },
+	{ tld: "build", price: 14.99, category: "tech" },
+	{ tld: "run", price: 14.99, category: "tech" },
+	{ tld: "cloud", price: 29.99, category: "tech" },
+	{ tld: "page", price: 14.99, category: "tech" },
+	{ tld: "so", price: 39.99, category: "tech" },
+	{ tld: "bot", price: 49.99, category: "tech" },
 
-	// Business & Professional TLDs
+	// ─── Business & Professional ───
 	{ tld: "co", price: 29.99, category: "business" },
 	{ tld: "company", price: 19.99, category: "business" },
 	{ tld: "business", price: 19.99, category: "business" },
@@ -30,37 +38,60 @@ const POPULAR_TLDS = [
 	{ tld: "services", price: 29.99, category: "business" },
 	{ tld: "group", price: 19.99, category: "business" },
 	{ tld: "consulting", price: 34.99, category: "business" },
+	{ tld: "ventures", price: 39.99, category: "business" },
+	{ tld: "capital", price: 49.99, category: "business" },
+	{ tld: "finance", price: 49.99, category: "business" },
+	{ tld: "money", price: 29.99, category: "business" },
+	{ tld: "fund", price: 49.99, category: "business" },
+	{ tld: "vc", price: 79.99, category: "business" },
+	{ tld: "expert", price: 39.99, category: "business" },
 
-	// Creative & Media TLDs
+	// ─── Creative & Media ───
 	{ tld: "design", price: 49.99, category: "creative" },
 	{ tld: "studio", price: 24.99, category: "creative" },
 	{ tld: "media", price: 34.99, category: "creative" },
-	{ tld: "graphics", price: 19.99, category: "creative" },
 	{ tld: "art", price: 14.99, category: "creative" },
 	{ tld: "photography", price: 22.99, category: "creative" },
+	{ tld: "video", price: 29.99, category: "creative" },
+	{ tld: "film", price: 29.99, category: "creative" },
+	{ tld: "music", price: 29.99, category: "creative" },
+	{ tld: "blog", price: 14.99, category: "creative" },
+	{ tld: "ink", price: 34.99, category: "creative" },
 
-	// E-commerce & Shopping TLDs
+	// ─── E-commerce & Shopping ───
 	{ tld: "shop", price: 34.99, category: "ecommerce" },
 	{ tld: "store", price: 59.99, category: "ecommerce" },
 	{ tld: "online", price: 3.99, category: "ecommerce" },
 	{ tld: "site", price: 29.99, category: "ecommerce" },
 	{ tld: "market", price: 29.99, category: "ecommerce" },
+	{ tld: "buy", price: 39.99, category: "ecommerce" },
+	{ tld: "sale", price: 29.99, category: "ecommerce" },
 
-	// Community & Social TLDs
+	// ─── Community & Social ───
 	{ tld: "community", price: 34.99, category: "community" },
 	{ tld: "social", price: 29.99, category: "community" },
 	{ tld: "network", price: 22.99, category: "community" },
 	{ tld: "club", price: 14.99, category: "community" },
 	{ tld: "team", price: 29.99, category: "community" },
+	{ tld: "fan", price: 24.99, category: "community" },
+	{ tld: "live", price: 24.99, category: "community" },
+	{ tld: "game", price: 34.99, category: "community" },
+	{ tld: "gg", price: 39.99, category: "community" },
 
-	// Geographic TLDs
+	// ─── Geographic ───
 	{ tld: "us", price: 11.99, category: "geographic" },
 	{ tld: "uk", price: 8.99, category: "geographic" },
 	{ tld: "ca", price: 19.99, category: "geographic" },
 	{ tld: "de", price: 8.99, category: "geographic" },
 	{ tld: "eu", price: 8.99, category: "geographic" },
+	{ tld: "au", price: 19.99, category: "geographic" },
+	{ tld: "fr", price: 9.99, category: "geographic" },
+	{ tld: "in", price: 14.99, category: "geographic" },
+	{ tld: "br", price: 14.99, category: "geographic" },
+	{ tld: "mx", price: 19.99, category: "geographic" },
+	{ tld: "nl", price: 9.99, category: "geographic" },
 
-	// Affordable & New TLDs
+	// ─── Affordable & Trending ───
 	{ tld: "xyz", price: 1.99, category: "affordable" },
 	{ tld: "top", price: 2.99, category: "affordable" },
 	{ tld: "pro", price: 17.99, category: "affordable" },
@@ -69,6 +100,17 @@ const POPULAR_TLDS = [
 	{ tld: "today", price: 22.99, category: "affordable" },
 	{ tld: "space", price: 2.99, category: "affordable" },
 	{ tld: "website", price: 3.99, category: "affordable" },
+	{ tld: "one", price: 4.99, category: "affordable" },
+	{ tld: "link", price: 9.99, category: "affordable" },
+	{ tld: "click", price: 4.99, category: "affordable" },
+	{ tld: "email", price: 9.99, category: "affordable" },
+	{ tld: "id", price: 14.99, category: "affordable" },
+	{ tld: "lol", price: 9.99, category: "affordable" },
+	{ tld: "fun", price: 9.99, category: "affordable" },
+	{ tld: "rocks", price: 9.99, category: "affordable" },
+	{ tld: "ninja", price: 14.99, category: "affordable" },
+	{ tld: "guru", price: 29.99, category: "affordable" },
+	{ tld: "works", price: 22.99, category: "affordable" },
 ];
 
 // Simple domain availability check
