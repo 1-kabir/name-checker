@@ -36,8 +36,21 @@ type CategoryFilter =
 	| "business"
 	| "creative"
 	| "ecommerce"
-	| "community";
+	| "community"
+	| "geographic"
+	| "affordable";
 type SortOption = "name" | "price-low" | "price-high";
+
+const CATEGORY_LABELS: Record<string, string> = {
+	generic: "Generic",
+	tech: "Tech",
+	business: "Business",
+	creative: "Creative",
+	ecommerce: "E-commerce",
+	community: "Community",
+	geographic: "Geographic",
+	affordable: "Affordable",
+};
 
 export default function NameChecker() {
 	const [searchNames, setSearchNames] = useState<string[]>([""]);
@@ -405,8 +418,7 @@ export default function NameChecker() {
 								className="flex-none flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 border-2 border-black hover:bg-black hover:text-white disabled:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
 							>
 								<Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-								<span className="hidden xs:inline">Add</span>
-								<span className="xs:hidden">+</span>
+								<span className="hidden sm:inline">Add Name</span>
 							</button>
 							<button
 								type="button"
@@ -631,20 +643,14 @@ export default function NameChecker() {
 												className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-black mt-2"
 											>
 												<option value="all">All Categories</option>
-												<option value="generic">
-													Generic (.com, .net, .org)
-												</option>
-												<option value="tech">Tech (.io, .ai, .dev)</option>
-												<option value="business">Business (.co, .biz)</option>
-												<option value="creative">
-													Creative (.design, .studio)
-												</option>
-												<option value="ecommerce">
-													E-commerce (.shop, .store)
-												</option>
-												<option value="community">
-													Community (.club, .social)
-												</option>
+												<option value="generic">Generic (.com, .net, .org)</option>
+												<option value="tech">Tech (.io, .ai, .dev, .app)</option>
+												<option value="business">Business (.co, .agency, .vc)</option>
+												<option value="creative">Creative (.design, .studio, .blog)</option>
+												<option value="ecommerce">E-commerce (.shop, .store, .buy)</option>
+												<option value="community">Community (.club, .social, .gg)</option>
+												<option value="geographic">Geographic (.us, .uk, .ca, .de)</option>
+												<option value="affordable">Affordable (.xyz, .top, .one)</option>
 											</select>
 										</label>
 									</div>
@@ -699,7 +705,7 @@ export default function NameChecker() {
 																)}
 																{domain.category && (
 																	<span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-700">
-																		{domain.category}
+																		{CATEGORY_LABELS[domain.category] ?? domain.category}
 																	</span>
 																)}
 															</div>
@@ -738,7 +744,7 @@ export default function NameChecker() {
 																)}
 																{domain.category && (
 																	<span className="text-xs px-1.5 py-0.5 bg-gray-300 text-gray-600">
-																		{domain.category}
+																		{CATEGORY_LABELS[domain.category] ?? domain.category}
 																	</span>
 																)}
 															</div>
@@ -776,7 +782,7 @@ export default function NameChecker() {
 																)}
 																{domain.category && (
 																	<span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-700">
-																		{domain.category}
+																		{CATEGORY_LABELS[domain.category] ?? domain.category}
 																	</span>
 																)}
 															</div>
