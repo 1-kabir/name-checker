@@ -141,12 +141,31 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: "Name is required" }, { status: 400 });
 		}
 
-		// Clean the name
-		const cleanName = name.toLowerCase().replace(/[^a-z0-9-]/g, "");
+		const trimmed = name.trim().toLowerCase();
 
-		// If specific TLD is requested
-		if (tld) {
-			const availability = await checkDomainAvailability(cleanName, tld);
+		// Detect if the user typed a full domain like "example.com" or "my-app.io"
+		// Split on the first dot: everything before is the SLD, everything after is the TLD
+		const dotIndex = trimmed.indexOf(".");
+		const hasTldInInput = dotIndex > 0 && dotIndex < trimmed.length - 1;
+
+		let sld: string;
+		let requestedTld: string | null = null;
+
+		if (hasTldInInput) {
+			sld = trimmed.slice(0, dotIndex).replace(/[^a-z0-9-]/g, "");
+			// Support multi-part TLDs like .co.uk by taking everything after first dot
+			requestedTld = trimmed.slice(dotIndex + 1).replace(/[^a-z0-9.-]/g, "");
+		} else {
+			sld = trimmed.replace(/[^a-z0-9-]/g, "");
+		}
+
+		if (!sld) {
+			return NextResponse.json({ error: "Invalid domain name" }, { status: 400 });
+		}
+
+		// If specific TLD is requested (legacy single-TLD API path)
+		if (tld && !hasTldInInput) {
+			const availability = await checkDomainAvailability(sld, tld);
 			const tldInfo = POPULAR_TLDS.find((t) => t.tld === tld) || {
 				tld,
 				price: null,
@@ -154,7 +173,7 @@ export async function POST(request: Request) {
 			};
 
 			return NextResponse.json({
-				domain: `${cleanName}.${tld}`,
+				domain: `${sld}.${tld}`,
 				available: availability.available,
 				price: tldInfo.price,
 				tld: tld,
@@ -162,24 +181,41 @@ export async function POST(request: Request) {
 			});
 		}
 
-		// Check all popular TLDs
+		// If user typed a full domain, pin-check that specific one first
+		let pinnedDomain = null;
+		if (requestedTld) {
+			const availability = await checkDomainAvailability(sld, requestedTld);
+			const tldInfo = POPULAR_TLDS.find((t) => t.tld === requestedTld) || {
+				tld: requestedTld,
+				price: null,
+				category: "generic",
+			};
+			pinnedDomain = {
+				domain: `${sld}.${requestedTld}`,
+				tld: requestedTld,
+				available: availability.available,
+				price: tldInfo.price,
+				category: tldInfo.category,
+				pinned: true,
+			};
+		}
+
+		// Check all popular TLDs for the base SLD (exclude the pinned one to avoid duplicate)
 		const results = await Promise.all(
-			POPULAR_TLDS.map(async (tldInfo) => {
-				const availability = await checkDomainAvailability(
-					cleanName,
-					tldInfo.tld,
-				);
+			POPULAR_TLDS.filter((t) => t.tld !== requestedTld).map(async (tldInfo) => {
+				const availability = await checkDomainAvailability(sld, tldInfo.tld);
 				return {
-					domain: `${cleanName}.${tldInfo.tld}`,
+					domain: `${sld}.${tldInfo.tld}`,
 					tld: tldInfo.tld,
 					available: availability.available,
 					price: tldInfo.price,
 					category: tldInfo.category,
+					pinned: false,
 				};
 			}),
 		);
 
-		return NextResponse.json({ results });
+		return NextResponse.json({ results, pinnedDomain });
 	} catch (error) {
 		console.error("Domain check error:", error);
 		return NextResponse.json(

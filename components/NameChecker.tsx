@@ -18,6 +18,7 @@ interface DomainResult {
 	available: boolean | null;
 	price: number | null;
 	category?: string;
+	pinned?: boolean;
 }
 
 interface SocialResult {
@@ -75,6 +76,7 @@ export default function NameChecker() {
 	// Search progress
 	const [searchProgress, setSearchProgress] = useState(0);
 	const [searchedNames, setSearchedNames] = useState<string[]>([]);
+	const [pinnedDomains, setPinnedDomains] = useState<DomainResult[]>([]);
 
 	// Check cooldown status on mount
 	useEffect(() => {
@@ -125,6 +127,7 @@ export default function NameChecker() {
 		setIsChecking(true);
 		setDomainResults([]);
 		setSocialResults([]);
+		setPinnedDomains([]);
 		setSearchProgress(0);
 		setSearchedNames(validNames);
 
@@ -134,6 +137,11 @@ export default function NameChecker() {
 
 			const results = await Promise.all(
 				validNames.map(async (name) => {
+					// Derive the base name for social checks (strip TLD if user typed full domain)
+					const dotIndex = name.trim().indexOf(".");
+					const baseName =
+						dotIndex > 0 ? name.trim().slice(0, dotIndex) : name.trim();
+
 					// Check domains
 					const domainRes = await fetch("/apps/name-checker/api/check-domain", {
 						method: "POST",
@@ -142,20 +150,21 @@ export default function NameChecker() {
 					});
 					const domainData = await domainRes.json();
 
-					// Check social media
+					// Check social media using the base name (no TLD)
 					const socialRes = await fetch("/apps/name-checker/api/check-social", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ username: name }),
+						body: JSON.stringify({ username: baseName }),
 					});
 					const socialData = await socialRes.json();
-					const cleanedName = name.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
+					const cleanedName = baseName.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
 
 					completed++;
 					setSearchProgress(Math.round((completed / totalNames) * 100));
 
 					return {
 						domains: domainData.results || [],
+						pinned: domainData.pinnedDomain ?? null,
 						socials: (socialData.results || []).map((r: SocialResult) => ({
 							...r,
 							username: cleanedName,
@@ -166,9 +175,11 @@ export default function NameChecker() {
 
 			const allDomains = results.flatMap((r) => r.domains);
 			const allSocials = results.flatMap((r) => r.socials);
+			const allPinned = results.map((r) => r.pinned).filter(Boolean) as DomainResult[];
 
 			setDomainResults(allDomains);
 			setSocialResults(allSocials);
+			setPinnedDomains(allPinned);
 		} catch (error) {
 			console.error("Search error:", error);
 		} finally {
@@ -679,6 +690,62 @@ export default function NameChecker() {
 						{/* Domain Results */}
 						{activeTab === "domains" && (
 							<div className="space-y-6">
+								{/* Pinned / Exact Match Domain */}
+								{pinnedDomains.length > 0 && (
+									<div>
+										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2 flex-wrap">
+											<Globe className="w-5 h-5" /> Exact Match
+										</h3>
+										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+											{pinnedDomains.map((domain) => (
+												<motion.div
+													key={domain.domain}
+													initial={{ opacity: 0, y: -10 }}
+													animate={{ opacity: 1, y: 0 }}
+													className={`p-4 border-2 ${
+														domain.available === true
+															? "border-black bg-black text-white"
+															: domain.available === false
+																? "border-gray-400 bg-gray-100 text-gray-500"
+																: "border-gray-300 bg-white text-gray-700"
+													}`}
+												>
+													<div className="flex justify-between items-start gap-2">
+														<div className="min-w-0">
+															<p className={`font-bold text-sm sm:text-base break-all ${domain.available === false ? "line-through" : ""}`}>
+																{domain.domain}
+															</p>
+															<div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
+																{domain.price && (
+																	<p className={`text-xs sm:text-sm ${domain.available === true ? "text-gray-300" : "text-gray-600"}`}>
+																		${domain.price}/yr
+																	</p>
+																)}
+																<span className={`text-xs px-1.5 py-0.5 font-medium ${
+																	domain.available === true
+																		? "bg-white text-black"
+																		: domain.available === false
+																			? "bg-gray-300 text-gray-600"
+																			: "bg-gray-200 text-gray-700"
+																}`}>
+																	{domain.available === true ? "Available" : domain.available === false ? "Taken" : "Unknown"}
+																</span>
+															</div>
+														</div>
+														{domain.available === true ? (
+															<Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+														) : domain.available === false ? (
+															<X className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+														) : (
+															<span className="text-sm text-gray-400 flex-shrink-0">?</span>
+														)}
+													</div>
+												</motion.div>
+											))}
+										</div>
+									</div>
+								)}
+
 								{filteredAvailableDomains.length > 0 && (
 									<div>
 										<h3 className="text-lg sm:text-xl font-bold mb-3 flex items-center gap-2 flex-wrap">
