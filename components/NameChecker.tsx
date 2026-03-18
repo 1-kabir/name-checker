@@ -10,7 +10,7 @@ import {
 	Sparkles,
 	X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface DomainResult {
 	domain: string;
@@ -105,6 +105,14 @@ export default function NameChecker() {
 		return () => clearInterval(interval);
 	}, [cooldownSeconds]);
 
+	const abortControllerRef = useRef<AbortController | null>(null);
+
+	const handleCancel = () => {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+		}
+	};
+
 	const addSearchField = () => {
 		setSearchNames([...searchNames, ""]);
 	};
@@ -124,6 +132,16 @@ export default function NameChecker() {
 		const validNames = searchNames.filter((n) => n.trim());
 		if (validNames.length === 0) return;
 
+		// Cancel any existing search
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+		}
+
+		// Create new abort controller
+		const controller = new AbortController();
+		abortControllerRef.current = controller;
+		const signal = controller.signal;
+
 		setIsChecking(true);
 		setDomainResults([]);
 		setSocialResults([]);
@@ -137,6 +155,8 @@ export default function NameChecker() {
 
 			const results = await Promise.all(
 				validNames.map(async (name) => {
+					if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+
 					// Derive the base name for social checks (strip TLD if user typed full domain)
 					const dotIndex = name.trim().indexOf(".");
 					const baseName =
@@ -147,14 +167,18 @@ export default function NameChecker() {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ name }),
+						signal,
 					});
 					const domainData = await domainRes.json();
+
+					if (signal.aborted) throw new DOMException("Aborted", "AbortError");
 
 					// Check social media using the base name (no TLD)
 					const socialRes = await fetch("/apps/name-checker/api/check-social", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ username: baseName }),
+						signal,
 					});
 					const socialData = await socialRes.json();
 					const cleanedName = baseName.toLowerCase().replace(/[^a-z0-9_.-]/g, "");
@@ -180,11 +204,21 @@ export default function NameChecker() {
 			setDomainResults(allDomains);
 			setSocialResults(allSocials);
 			setPinnedDomains(allPinned);
-		} catch (error) {
-			console.error("Search error:", error);
+		} catch (error: any) {
+			if (error.name === "AbortError") {
+				console.log("Search cancelled");
+			} else {
+				console.error("Search error:", error);
+			}
 		} finally {
-			setIsChecking(false);
-			setSearchProgress(0);
+			// Only clear if this is the active controller
+			if (abortControllerRef.current === controller) {
+				setIsChecking(false);
+				abortControllerRef.current = null;
+				// Keep progress visible or reset? 
+				// Usually better to keep partial results if any, but we cleared them at start.
+				// If cancelled, results are empty anyway because Promise.all rejected.
+			}
 		}
 	};
 
@@ -449,6 +483,16 @@ export default function NameChecker() {
 									</>
 								)}
 							</button>
+							{isChecking && (
+								<button
+									type="button"
+									onClick={handleCancel}
+									className="flex-none flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors text-sm sm:text-base"
+									title="Cancel Search"
+								>
+									<X className="w-4 h-4 sm:w-5 sm:h-5" />
+								</button>
+							)}
 						</div>
 
 						{/* Generate Names Button */}
